@@ -21,6 +21,11 @@ model User {
   lastName      String?
   avatarUrl     String?
 
+  // SSO fields
+  googleId      String?  @unique
+  linkedinId    String?  @unique
+  provider      String?  // 'local', 'google', 'linkedin'
+
   isActive      Boolean  @default(true)
   emailVerified Boolean  @default(false)
 
