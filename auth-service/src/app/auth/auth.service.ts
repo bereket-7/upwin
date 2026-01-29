@@ -70,7 +70,6 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
     const { email, password, firstName, lastName } = registerDto;
 
-    // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -79,10 +78,8 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -108,7 +105,6 @@ export class AuthService {
   async validateOAuthUser(oauthUser: OAuthUserDto): Promise<Omit<User, 'password'>> {
     const { provider, providerId, email, firstName, lastName, avatarUrl } = oauthUser;
     
-    // Check if user exists by provider ID
     const providerField = provider === 'google' ? 'googleId' : 'linkedinId';
     let user = await this.prisma.user.findUnique({
       where: { [providerField]: providerId },
@@ -119,19 +115,16 @@ export class AuthService {
       return result;
     }
 
-    // Check if user exists by email
     user = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (user) {
-      // Link OAuth account to existing user
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: { [providerField]: providerId },
       });
     } else {
-      // Create new user
       user = await this.prisma.user.create({
         data: {
           email,
@@ -141,7 +134,7 @@ export class AuthService {
           provider,
           [providerField]: providerId,
           isActive: true,
-          emailVerified: true, // OAuth emails are pre-verified
+          emailVerified: true,
         },
       });
     }

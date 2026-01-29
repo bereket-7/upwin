@@ -41,33 +41,25 @@ export class AuthController {
     return { message: 'Logged out successfully' };
   }
 
-  // Google OAuth routes
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth() {
-    // Initiates Google OAuth flow
-  }
+  async googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Request() req, @Res() res: Response) {
     const authResponse = await this.authService.generateTokenForUser(req.user);
-    // Redirect to frontend with token
     res.redirect(`${process.env.CALLBACK_URL}/auth/success?token=${authResponse.accessToken}`);
   }
 
-  // LinkedIn OAuth routes
   @Get('linkedin')
   @UseGuards(AuthGuard('linkedin'))
-  async linkedinAuth() {
-    // Initiates LinkedIn OAuth flow
-  }
+  async linkedinAuth() {}
 
   @Get('linkedin/callback')
   @UseGuards(AuthGuard('linkedin'))
   async linkedinCallback(@Request() req, @Res() res: Response) {
     const authResponse = await this.authService.generateTokenForUser(req.user);
-    // Redirect to frontend with token
     res.redirect(`${process.env.CALLBACK_URL}/auth/success?token=${authResponse.accessToken}`);
   }
 }
