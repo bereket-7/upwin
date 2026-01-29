@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface LoginDto {
   email: string;
@@ -24,10 +25,11 @@ export interface AuthResponse {
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<Omit<User, 'password'> | null> {
-    const user = await this.db.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
@@ -60,7 +62,7 @@ export class AuthService {
     const { email, password, firstName, lastName } = registerDto;
 
     // Check if user already exists
-    const existingUser = await this.user.findUnique({
+    const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
 
@@ -72,7 +74,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
-    const user = await this.db.user.create({
+    const user = await this.prisma.user.create({
       data: {
         email,
         password: hashedPassword,
@@ -95,7 +97,7 @@ export class AuthService {
   }
 
   async getProfile(userId: string): Promise<Omit<User, 'password'>> {
-    const user = await this.db.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
 
