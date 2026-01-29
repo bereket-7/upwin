@@ -16,6 +16,15 @@ export interface RegisterDto {
   lastName: string;
 }
 
+export interface OAuthUserDto {
+  provider: string;
+  providerId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string;
+}
+
 export interface AuthResponse {
   user: Omit<User, 'password'>;
   accessToken: string;
@@ -94,6 +103,57 @@ export class AuthService {
       user: result,
       accessToken,
     };
+  }
+
+  async validateOAuthUser(oauthUser: OAuthUserDto): Promise<Omit<User, 'password'>> {
+    const { provider, providerId, email, firstName, lastName, avatarUrl } = oauthUser;
+    
+    // Check if user exists by provider ID
+    const providerField = provider === 'google' ? 'googleId' : 'linkedinId';
+    let user = await this.prisma.user.findUnique({
+      where: { [providerField]: providerId },
+    });
+
+    if (user) {
+      const { password, ...result } = user;
+      return result;
+    }
+
+    // Check if user exists by email
+    user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (user) {
+      // Link OAuth account to existing user
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { [providerField]: providerId },
+      });
+    } else {
+      // Create new user
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          avatarUrl,
+          provider,
+          [providerField]: providerId,
+          isActive: true,
+          emailVerified: true, // OAuth emails are pre-verified
+        },
+      });
+    }
+
+    const { password, ...result } = user;
+    return result;
+  }
+
+  async generateTokenForUser(user: Omit<User, 'password'>): Promise<AuthResponse> {
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = this.jwtService.sign(payload);
+    return { user, accessToken };
   }
 
   async getProfile(userId: string): Promise<Omit<User, 'password'>> {
