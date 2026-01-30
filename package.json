@@ -25,7 +25,8 @@
   "workspaces": [
     "packages/*",
     "auth-service",
-    "auth-service-e2e"
+    "auth-service-e2e",
+    "libs/*"
   ],
   "dependencies": {
     "@nestjs/common": "^11.0.0",

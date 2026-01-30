@@ -1,13 +1,12 @@
 {
-  "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
   "references": [
     {
-      "path": "./auth-service-e2e"
+      "path": "./libs/shared"
     },
     {
-      "path": "./auth-service"
+      "path": "./apps/auth-service"
     }
   ]
 }
