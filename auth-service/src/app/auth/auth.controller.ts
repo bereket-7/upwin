@@ -19,6 +19,7 @@ import { ConfigService } from '../config/config.service';
 import { AuthCodeService } from './auth-code.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { UserProfile, AuthenticatedUser } from './auth.types';
 
 @Controller('auth')
 export class AuthController {
@@ -42,14 +43,14 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@Request() req): Promise<any> {
+  async getProfile(@Request() req: { user: AuthenticatedUser }): Promise<UserProfile> {
     return this.authService.getProfile(req.user.userId);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req): Promise<{ message: string }> {
+  async logout(@Request() req: { user: AuthenticatedUser; headers: { authorization?: string } }): Promise<{ message: string }> {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       this.tokenBlacklistService.blacklistToken(token);
@@ -63,7 +64,7 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleCallback(@Request() req, @Res() res: Response) {
+  async googleCallback(@Request() req: { user: UserProfile }, @Res() res: Response) {
     const authCode = this.authCodeService.generateAuthCode(req.user.id);
     const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
     
@@ -80,7 +81,7 @@ export class AuthController {
 
   @Get('linkedin/callback')
   @UseGuards(AuthGuard('linkedin'))
-  async linkedinCallback(@Request() req, @Res() res: Response) {
+  async linkedinCallback(@Request() req: { user: UserProfile }, @Res() res: Response) {
     const authCode = this.authCodeService.generateAuthCode(req.user.id);
     const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
     

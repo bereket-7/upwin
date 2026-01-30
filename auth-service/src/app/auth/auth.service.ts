@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserProfile } from './auth.types';
 
 export interface LoginDto {
   email: string;
@@ -26,7 +27,7 @@ export interface OAuthUserDto {
 }
 
 export interface AuthResponse {
-  user: Omit<User, 'password'>;
+  user: UserProfile;
   accessToken: string;
 }
 
@@ -37,7 +38,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<Omit<User, 'password'> | null> {
+  async validateUser(email: string, password: string): Promise<UserProfile | null> {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -102,7 +103,7 @@ export class AuthService {
     };
   }
 
-  async validateOAuthUser(oauthUser: OAuthUserDto): Promise<Omit<User, 'password'>> {
+  async validateOAuthUser(oauthUser: OAuthUserDto): Promise<UserProfile> {
     const { provider, providerId, email, firstName, lastName, avatarUrl } = oauthUser;
     
     const providerField = provider === 'google' ? 'googleId' : 'linkedinId';
@@ -143,13 +144,13 @@ export class AuthService {
     return result;
   }
 
-  async generateTokenForUser(user: Omit<User, 'password'>): Promise<AuthResponse> {
+  async generateTokenForUser(user: UserProfile): Promise<AuthResponse> {
     const payload = { sub: user.id, email: user.email };
     const accessToken = this.jwtService.sign(payload);
     return { user, accessToken };
   }
 
-  async getProfile(userId: string): Promise<Omit<User, 'password'>> {
+  async getProfile(userId: string): Promise<UserProfile> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });

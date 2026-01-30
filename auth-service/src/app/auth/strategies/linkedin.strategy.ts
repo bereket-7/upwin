@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-linkedin-oauth2';
 import { AuthService } from '../auth.service';
 import { ConfigService } from '../../config/config.service';
+import { OAuthProfile } from '../auth.types';
 
 @Injectable()
 export class LinkedInStrategy extends PassportStrategy(Strategy, 'linkedin') {
@@ -21,7 +22,7 @@ export class LinkedInStrategy extends PassportStrategy(Strategy, 'linkedin') {
   async validate(
     accessToken: string,
     refreshToken: string,
-    profile: any,
+    profile: OAuthProfile,
     done: any,
   ): Promise<any> {
     try {
