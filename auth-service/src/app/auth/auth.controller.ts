@@ -7,15 +7,20 @@ import {
   Request,
   HttpCode,
   HttpStatus,
-  Res
+  Res,
+  BadRequestException
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { AuthService, LoginDto, RegisterDto, AuthResponse } from './auth.service';
+import { ConfigService } from '../config/config.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService
+  ) {}
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto): Promise<AuthResponse> {
@@ -49,7 +54,13 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Request() req, @Res() res: Response) {
     const authResponse = await this.authService.generateTokenForUser(req.user);
-    res.redirect(`${process.env.CALLBACK_URL}/auth/success?token=${authResponse.accessToken}`);
+    const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
+    
+    if (!this.configService.validateCallbackUrl(redirectUrl)) {
+      throw new BadRequestException('Invalid callback URL');
+    }
+    
+    res.redirect(`${redirectUrl}?token=${authResponse.accessToken}`);
   }
 
   @Get('linkedin')
@@ -60,6 +71,12 @@ export class AuthController {
   @UseGuards(AuthGuard('linkedin'))
   async linkedinCallback(@Request() req, @Res() res: Response) {
     const authResponse = await this.authService.generateTokenForUser(req.user);
-    res.redirect(`${process.env.CALLBACK_URL}/auth/success?token=${authResponse.accessToken}`);
+    const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
+    
+    if (!this.configService.validateCallbackUrl(redirectUrl)) {
+      throw new BadRequestException('Invalid callback URL');
+    }
+    
+    res.redirect(`${redirectUrl}?token=${authResponse.accessToken}`);
   }
 }

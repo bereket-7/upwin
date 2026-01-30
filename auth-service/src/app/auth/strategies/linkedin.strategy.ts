@@ -2,14 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-linkedin-oauth2';
 import { AuthService } from '../auth.service';
+import { ConfigService } from '../../config/config.service';
 
 @Injectable()
 export class LinkedInStrategy extends PassportStrategy(Strategy, 'linkedin') {
-  constructor(private authService: AuthService) {
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService
+  ) {
     super({
-      clientID: process.env.LINKEDIN_CLIENT_ID,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-      callbackURL: `${process.env.CALLBACK_URL}/auth/linkedin/callback`,
+      clientID: configService.getLinkedInClientId(),
+      clientSecret: configService.getLinkedInClientSecret(),
+      callbackURL: `${configService.getCallbackUrl()}/auth/linkedin/callback`,
       scope: ['r_emailaddress', 'r_liteprofile'],
     });
   }
@@ -20,15 +24,25 @@ export class LinkedInStrategy extends PassportStrategy(Strategy, 'linkedin') {
     profile: any,
     done: any,
   ): Promise<any> {
-    const { id, name, emails, photos } = profile;
-    const user = await this.authService.validateOAuthUser({
-      provider: 'linkedin',
-      providerId: id,
-      email: emails[0].value,
-      firstName: name.givenName,
-      lastName: name.familyName,
-      avatarUrl: photos[0]?.value,
-    });
-    done(null, user);
+    try {
+      const { id, name, emails, photos } = profile;
+      const email = emails?.[0]?.value;
+      
+      if (!email) {
+        return done(new Error('No email provided by LinkedIn'), null);
+      }
+
+      const user = await this.authService.validateOAuthUser({
+        provider: 'linkedin',
+        providerId: id,
+        email,
+        firstName: name?.givenName || '',
+        lastName: name?.familyName || '',
+        avatarUrl: photos?.[0]?.value,
+      });
+      done(null, user);
+    } catch (error) {
+      done(error, null);
+    }
   }
 }
