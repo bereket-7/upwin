@@ -13,6 +13,9 @@ import { LinkedInStrategy } from './strategies/linkedin.strategy';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigModule } from '../config/config.module';
 import { ConfigService } from '../config/config.service';
+import { AuthCodeService } from './auth-code.service';
+import { TokenBlacklistService } from './token-blacklist.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -35,6 +38,9 @@ import { ConfigService } from '../config/config.service';
     GoogleStrategy,
     LinkedInStrategy,
     PrismaService,
+    AuthCodeService,
+    TokenBlacklistService,
+    JwtAuthGuard,
   ],
   exports: [AuthService],
 })

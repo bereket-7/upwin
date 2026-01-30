@@ -8,18 +8,25 @@ import {
   HttpCode,
   HttpStatus,
   Res,
-  BadRequestException
+  BadRequestException,
+  Query,
+  UnauthorizedException
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { AuthService, LoginDto, RegisterDto, AuthResponse } from './auth.service';
 import { ConfigService } from '../config/config.service';
+import { AuthCodeService } from './auth-code.service';
+import { TokenBlacklistService } from './token-blacklist.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly authCodeService: AuthCodeService,
+    private readonly tokenBlacklistService: TokenBlacklistService
   ) {}
 
   @Post('register')
@@ -34,15 +41,19 @@ export class AuthController {
   }
 
   @Get('profile')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   async getProfile(@Request() req): Promise<any> {
     return this.authService.getProfile(req.user.userId);
   }
 
   @Post('logout')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(): Promise<{ message: string }> {
+  async logout(@Request() req): Promise<{ message: string }> {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+      this.tokenBlacklistService.blacklistToken(token);
+    }
     return { message: 'Logged out successfully' };
   }
 
@@ -53,14 +64,14 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Request() req, @Res() res: Response) {
-    const authResponse = await this.authService.generateTokenForUser(req.user);
+    const authCode = this.authCodeService.generateAuthCode(req.user.id);
     const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
     
     if (!this.configService.validateCallbackUrl(redirectUrl)) {
       throw new BadRequestException('Invalid callback URL');
     }
     
-    res.redirect(`${redirectUrl}?token=${authResponse.accessToken}`);
+    res.redirect(`${redirectUrl}?code=${authCode}`);
   }
 
   @Get('linkedin')
@@ -70,13 +81,28 @@ export class AuthController {
   @Get('linkedin/callback')
   @UseGuards(AuthGuard('linkedin'))
   async linkedinCallback(@Request() req, @Res() res: Response) {
-    const authResponse = await this.authService.generateTokenForUser(req.user);
+    const authCode = this.authCodeService.generateAuthCode(req.user.id);
     const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
     
     if (!this.configService.validateCallbackUrl(redirectUrl)) {
       throw new BadRequestException('Invalid callback URL');
     }
     
-    res.redirect(`${redirectUrl}?token=${authResponse.accessToken}`);
+    res.redirect(`${redirectUrl}?code=${authCode}`);
+  }
+
+  @Post('exchange')
+  async exchangeCodeForToken(@Body('code') code: string): Promise<AuthResponse> {
+    if (!code) {
+      throw new BadRequestException('Authorization code is required');
+    }
+
+    const userId = this.authCodeService.exchangeCodeForToken(code);
+    if (!userId) {
+      throw new UnauthorizedException('Invalid or expired authorization code');
+    }
+
+    const user = await this.authService.getProfile(userId);
+    return this.authService.generateTokenForUser(user);
   }
 }
