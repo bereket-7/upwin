@@ -1,7 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { UserProfile } from './auth.types';
 
 export interface LoginDto {
@@ -48,11 +50,16 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export interface VerifyEmailDto {
+  token: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<UserProfile | null> {
@@ -100,6 +107,9 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -108,8 +118,13 @@ export class AuthService {
         lastName,
         isActive: true,
         emailVerified: false,
+        verificationToken,
+        verificationExpires,
       },
     });
+
+    // Send verification email
+    await this.emailService.sendVerificationEmail(email, verificationToken);
 
     return {
       message: 'Account created successfully. Please verify your email.',
@@ -194,5 +209,61 @@ export class AuthService {
 
     const { password, ...result } = user;
     return result as UserProfile;
+  }
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        verificationToken: token,
+        verificationExpires: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        verificationToken: null,
+        verificationExpires: null,
+      },
+    });
+
+    return { message: 'Email verified successfully' };
+  }
+
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        verificationToken,
+        verificationExpires,
+      },
+    });
+
+    // Send verification email
+    await this.emailService.sendVerificationEmail(email, verificationToken);
+
+    return { message: 'Verification email sent' };
   }
 }
