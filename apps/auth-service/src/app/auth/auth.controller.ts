@@ -14,7 +14,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
-import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse } from './auth.service';
+import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse, VerifyEmailDto } from './auth.service';
 import { ConfigService } from '../config/config.service';
 import { AuthCodeService } from './auth-code.service';
 import { TokenBlacklistService } from './token-blacklist.service';
@@ -33,6 +33,21 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto): Promise<RegisterResponse> {
     return this.authService.register(registerDto);
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto): Promise<{ message: string }> {
+    return this.authService.verifyEmail(verifyEmailDto.token);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(@Body('email') email: string): Promise<{ message: string }> {
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    return this.authService.resendVerification(email);
   }
 
   @Post('login')
