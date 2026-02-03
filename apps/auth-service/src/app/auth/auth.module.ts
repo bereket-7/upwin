@@ -11,7 +11,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { LinkedInStrategy } from './strategies/linkedin.strategy';
 
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailService } from '../email/email.service';
+import { EmailModule } from '../email/email.module';
 import { ConfigModule } from '../config/config.module';
 import { ConfigService } from '../config/config.service';
 import { AuthCodeService } from './auth-code.service';
@@ -22,6 +22,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
   imports: [
     PassportModule,
     ConfigModule,
+    EmailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -39,7 +40,6 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
     GoogleStrategy,
     LinkedInStrategy,
     PrismaService,
-    EmailService,
     AuthCodeService,
     TokenBlacklistService,
     JwtAuthGuard,

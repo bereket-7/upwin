@@ -16,7 +16,7 @@ export class ConfigService {
       'GOOGLE_CLIENT_SECRET',
       'LINKEDIN_CLIENT_ID',
       'LINKEDIN_CLIENT_SECRET',
-      'CALLBACK_URL'
+      'CALLBACK_URL',
     ];
 
     const config: Record<string, string> = {};
@@ -32,7 +32,9 @@ export class ConfigService {
     }
 
     if (missing.length > 0) {
-      throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+      throw new Error(
+        `Missing required environment variables: ${missing.join(', ')}`
+      );
     }
 
     return config;
@@ -70,17 +72,45 @@ export class ConfigService {
     return this.get('CALLBACK_URL');
   }
 
+  getSmtpHost(): string {
+    return process.env.SMTP_HOST || 'localhost';
+  }
+
+  getSmtpPort(): number {
+    return parseInt(process.env.SMTP_PORT || '587', 10);
+  }
+
+  getSmtpUser(): string {
+    return process.env.SMTP_USER || '';
+  }
+
+  getSmtpPass(): string {
+    return process.env.SMTP_PASS || '';
+  }
+
+  getSmtpFrom(): string {
+    return process.env.SMTP_FROM || '"Upwin Support" <noreply@upwin.com>';
+  }
+
+  getFrontendUrl(): string {
+    return process.env.FRONTEND_URL || 'http://localhost:3000';
+  }
+
   validateCallbackUrl(url: string): boolean {
     const allowedDomains = [
       'localhost',
       '127.0.0.1',
-      this.getCallbackUrl().replace(/^https?:\/\//, '').split('/')[0]
+      this.getCallbackUrl()
+        .replace(/^https?:\/\//, '')
+        .split('/')[0],
     ];
-    
+
     try {
       const parsedUrl = new URL(url);
-      return allowedDomains.some(domain => 
-        parsedUrl.hostname === domain || parsedUrl.hostname.endsWith(`.${domain}`)
+      return allowedDomains.some(
+        (domain) =>
+          parsedUrl.hostname === domain ||
+          parsedUrl.hostname.endsWith(`.${domain}`)
       );
     } catch {
       return false;
