@@ -14,7 +14,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
-import type { LoginDto, RegisterDto, AuthResponse } from './auth.service';
+import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse } from './auth.service';
 import { ConfigService } from '../config/config.service';
 import { AuthCodeService } from './auth-code.service';
 import { TokenBlacklistService } from './token-blacklist.service';
@@ -31,13 +31,13 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  async register(@Body() registerDto: RegisterDto): Promise<AuthResponse> {
+  async register(@Body() registerDto: RegisterDto): Promise<RegisterResponse> {
     return this.authService.register(registerDto);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto): Promise<AuthResponse> {
+  async login(@Body() loginDto: LoginDto): Promise<LoginResponse> {
     return this.authService.login(loginDto);
   }
 

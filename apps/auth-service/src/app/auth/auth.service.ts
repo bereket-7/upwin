@@ -25,6 +25,24 @@ export interface OAuthUserDto {
   avatarUrl?: string;
 }
 
+export interface RegisterResponse {
+  message: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string | null;
+    emailVerified: boolean;
+    createdAt: Date;
+  };
+}
+
+export interface LoginResponse {
+  user: UserProfile;
+  accessToken: string;
+  expiresIn: number;
+}
+
 export interface AuthResponse {
   user: UserProfile;
   accessToken: string;
@@ -50,7 +68,7 @@ export class AuthService {
     return null;
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponse> {
+  async login(loginDto: LoginDto): Promise<LoginResponse> {
     const { email, password } = loginDto;
     
     const user = await this.validateUser(email, password);
@@ -60,14 +78,16 @@ export class AuthService {
 
     const payload = { sub: user.id, email: user.email };
     const accessToken = this.jwtService.sign(payload);
+    const expiresIn = 15 * 60; // 15 minutes in seconds
 
     return {
       user,
       accessToken,
+      expiresIn,
     };
   }
 
-  async register(registerDto: RegisterDto): Promise<AuthResponse> {
+  async register(registerDto: RegisterDto): Promise<RegisterResponse> {
     const { email, password, firstName, lastName } = registerDto;
 
     const existingUser = await this.prisma.user.findUnique({
@@ -91,14 +111,16 @@ export class AuthService {
       },
     });
 
-    const { password: _, ...result } = user;
-    
-    const payload = { sub: user.id, email: user.email };
-    const accessToken = this.jwtService.sign(payload);
-
     return {
-      user: result as UserProfile,
-      accessToken,
+      message: 'Account created successfully. Please verify your email.',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        emailVerified: user.emailVerified,
+        createdAt: user.createdAt,
+      },
     };
   }
 
