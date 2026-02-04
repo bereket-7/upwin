@@ -33,9 +33,11 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
+    "@types/lodash": "^4.17.23",
     "@types/nodemailer": "^7.0.9",
     "axios": "^1.6.0",
     "handlebars": "^4.7.8",
+    "lodash": "^4.17.23",
     "nodemailer": "^7.0.13",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0"
