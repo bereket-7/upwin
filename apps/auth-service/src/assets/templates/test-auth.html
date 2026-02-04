@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upwin Auth Test Bed</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-bottom: 12px;
+            color: #0f172a;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 18px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .icon-box {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .google-icon { background: #fee2e2; color: #dc2626; }
+        .linkedin-icon { background: #e0f2fe; color: #0284c7; }
+        .local-icon { background: #f1f5f9; color: #475569; }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            box-shadow: 0 6px 8px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        .footer-note {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            background: #e2e8f0;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Upwin Auth Test Bed</h1>
+            <p>Directly test authentication flows and SSO integrations</p>
+        </header>
+
+        <div class="grid">
+            <!-- Local Auth Card -->
+            <div class="card">
+                <div class="pill">Backend Only</div>
+                <div class="icon-box local-icon">🔑</div>
+                <h2>Local Auth</h2>
+                <p>Register and login using email and password. Test verification emails.</p>
+                <a href="/api/auth/success?code=DEMO_ONLY" class="btn btn-primary">View Instructions</a>
+            </div>
+
+            <!-- Google SSO Card -->
+            <div class="card">
+                <div class="pill">OAuth 2.0</div>
+                <div class="icon-box google-icon">G</div>
+                <h2>Google SSO</h2>
+                <p>Seamlessly authenticate with your Google account. Supports auto-registration.</p>
+                <a href="/api/auth/google" class="btn btn-primary">Test Google Flow</a>
+            </div>
+
+            <!-- LinkedIn SSO Card -->
+            <div class="card">
+                <div class="pill">OAuth 2.0</div>
+                <div class="icon-box linkedin-icon">in</div>
+                <h2>LinkedIn SSO</h2>
+                <p>Professional login via LinkedIn. Pulls lite profile and email data.</p>
+                <a href="/api/auth/linkedin" class="btn btn-primary">Test LinkedIn Flow</a>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            <p>&copy; 2026 Upwin Backend Development Suite. For developer use only.</p>
+        </div>
+    </div>
+</body>
+</html>
