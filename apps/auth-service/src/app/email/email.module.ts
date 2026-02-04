@@ -25,7 +25,7 @@ import { ConfigService } from '../config/config.service';
           from: configService.getSmtpFrom(),
         },
         template: {
-          dir: join(__dirname, 'assets', 'templates'),
+          dir: join(__dirname, '..', '..', 'assets', 'templates'),
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,

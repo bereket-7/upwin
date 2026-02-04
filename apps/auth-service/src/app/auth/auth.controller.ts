@@ -9,12 +9,13 @@ import {
   HttpStatus,
   Res,
   BadRequestException,
-  UnauthorizedException
+  UnauthorizedException,
+  Query
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
-import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse, VerifyEmailDto } from './auth.service';
+import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse } from './auth.service';
 import { ConfigService } from '../config/config.service';
 import { AuthCodeService } from './auth-code.service';
 import { TokenBlacklistService } from './token-blacklist.service';
@@ -35,10 +36,13 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
-  @Post('verify-email')
+  @Get('verify-email')
   @HttpCode(HttpStatus.OK)
-  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto): Promise<{ message: string }> {
-    return this.authService.verifyEmail(verifyEmailDto.token);
+  async verifyEmail(@Query('token') token: string): Promise<{ message: string }> {
+    if (!token) {
+      throw new BadRequestException('Token is required');
+    }
+    return this.authService.verifyEmail(token);
   }
 
   @Post('resend-verification')
