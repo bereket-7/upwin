@@ -17,6 +17,7 @@ export class ConfigService {
       'LINKEDIN_CLIENT_ID',
       'LINKEDIN_CLIENT_SECRET',
       'CALLBACK_URL',
+      'API_URL',
     ];
 
     const config: Record<string, string> = {};
@@ -70,6 +71,10 @@ export class ConfigService {
 
   getCallbackUrl(): string {
     return this.get('CALLBACK_URL');
+  }
+
+  getApiUrl(): string {
+    return this.get('API_URL');
   }
 
   getSmtpHost(): string {
