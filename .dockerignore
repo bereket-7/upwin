@@ -1,6 +1,5 @@
 # Docker defaults
 node_modules
-!dist
 tmp
 coverage
 .git
