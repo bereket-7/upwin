@@ -1,4 +1,4 @@
-name: Deploy Auth Service to VPS
+name: Staging Auth-Service
 
 on:
   push:
