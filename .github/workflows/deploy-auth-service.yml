@@ -37,9 +37,16 @@ jobs:
 
       - name: Verify Build Output
         run: |
-          echo "Checking if dist folder exists..."
+          echo "=== Checking for dist folder ==="
           ls -la dist/apps/auth-service || echo "dist/apps/auth-service not found!"
-          echo "Current directory contents:"
+          echo ""
+          echo "=== Searching for any dist folders ==="
+          find . -type d -name "dist" -o -name "build" 2>/dev/null || echo "No dist or build folders found"
+          echo ""
+          echo "=== Checking apps/auth-service directory ==="
+          ls -la apps/auth-service/
+          echo ""
+          echo "=== Root directory contents ==="
           ls -la
 
       - name: Build and Push Docker Image
