@@ -5,11 +5,11 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package.json and install production dependencies
-COPY dist/apps/auth-service/package*.json ./
+COPY apps/auth-service/dist/package*.json ./
 RUN npm ci --omit=dev
 
 # Copy built application code
-COPY dist/apps/auth-service/ ./
+COPY apps/auth-service/dist/ ./
 
 # Add a non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
