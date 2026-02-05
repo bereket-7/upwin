@@ -26,8 +26,8 @@
   },
   "workspaces": [
     "packages/*",
-    "auth-service",
-    "auth-service-e2e",
+    "apps/auth-service",
+    "apps/auth-service-e2e",
     "libs/*"
   ],
   "dependencies": {
