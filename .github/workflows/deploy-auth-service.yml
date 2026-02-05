@@ -59,22 +59,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
-          script: |
+        run: |
+          # Install sshpass for password-based SSH
+          sudo apt-get update && sudo apt-get install -y sshpass
+
+          # Deploy using SSH with password
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
             # Pull the new image
             docker pull ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
-
+            
             # Stop and remove the existing container if it exists
             docker stop auth-service-staging || true
             docker rm auth-service-staging || true
-
+            
             # Run the new container
-            # Mapping Port 3008 (VPS) to 3008 (Container)
-            # Setting PORT=3008 env var to ensure NestJS listens on it
             docker run -d \
               --restart always \
               -p 3008:3008 \
@@ -82,3 +80,4 @@ jobs:
               -e PORT=3008 \
               -e NODE_ENV=production \
               ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
+          EOF
