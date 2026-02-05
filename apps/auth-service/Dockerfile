@@ -6,7 +6,8 @@ WORKDIR /app
 
 # Copy package.json and install production dependencies
 COPY apps/auth-service/dist/package*.json ./
-RUN npm ci --omit=dev
+COPY apps/auth-service/package-lock.json ./
+RUN npm install --production --ignore-scripts
 
 # Copy built application code
 COPY apps/auth-service/dist/ ./
