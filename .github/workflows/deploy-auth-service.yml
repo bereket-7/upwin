@@ -27,7 +27,6 @@ jobs:
         run: npx prisma generate --schema=apps/auth-service/prisma/schema.prisma
 
       - name: Build Auth Service
-        # Adjust this if your build target is named differently (e.g., 'build')
         run: npx nx build auth-service --configuration=production
 
       - name: Login to Docker Hub
