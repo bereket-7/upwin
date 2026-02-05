@@ -60,11 +60,13 @@ jobs:
     steps:
       - name: Deploy to VPS
         run: |
-          # Install sshpass for password-based SSH
-          sudo apt-get update && sudo apt-get install -y sshpass
+          # Setup SSH key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
 
-          # Deploy using SSH with password
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+          # Deploy using SSH with key
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
             # Pull the new image
             docker pull ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
             
