@@ -4,9 +4,8 @@
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy package.json and install production dependencies
-COPY apps/auth-service/dist/package*.json ./
-COPY apps/auth-service/package-lock.json ./
+# Copy package.json from source and install production dependencies
+COPY apps/auth-service/package*.json ./
 RUN npm install --production --ignore-scripts
 
 # Copy built application code
