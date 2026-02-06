@@ -72,12 +72,19 @@ jobs:
             docker stop auth-service-staging || true
             docker rm auth-service-staging || true
             
-            # Run the new container
+            # Run the new container with environment variables
             docker run -d \
               --restart always \
               -p 3008:3008 \
               --name auth-service-staging \
               -e PORT=3008 \
               -e NODE_ENV=production \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+              -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+              -e LINKEDIN_CLIENT_ID="${{ secrets.LINKEDIN_CLIENT_ID }}" \
+              -e LINKEDIN_CLIENT_SECRET="${{ secrets.LINKEDIN_CLIENT_SECRET }}" \
+              -e CALLBACK_URL="${{ secrets.CALLBACK_URL }}" \
               ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
           EOF
