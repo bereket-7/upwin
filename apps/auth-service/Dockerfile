@@ -4,9 +4,10 @@
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy package.json from source and install production dependencies
+# Copy package.json from source and install ALL dependencies
+# (webpack externalizes some deps, so we need everything)
 COPY apps/auth-service/package*.json ./
-RUN npm install --production --ignore-scripts
+RUN npm install --ignore-scripts
 
 # Copy built application code
 COPY apps/auth-service/dist/ ./
