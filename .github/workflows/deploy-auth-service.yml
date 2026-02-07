@@ -93,6 +93,7 @@ jobs:
               -e 'SMTP_PORT=${{ secrets.SMTP_PORT }}' \
               -e 'SMTP_USER=${{ secrets.SMTP_USER }}' \
               -e 'SMTP_PASS=${{ secrets.SMTP_PASS }}' \
-              -e 'SMTP_FROM=${{ secrets.SMTP_FROM }}' \
+              -e 'SMTP_FROM_NAME=${{ secrets.SMTP_FROM_NAME }}' \
+              -e 'SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}' \
               ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
           EOF
