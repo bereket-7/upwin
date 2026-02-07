@@ -24,7 +24,9 @@ jobs:
         run: npm ci
 
       - name: Generate Prisma Client
-        run: npx prisma generate --schema=apps/auth-service/prisma/schema.prisma
+        run: |
+          cd apps/auth-service
+          npx prisma generate
 
       - name: Build Auth Service
         run: npx nx build auth-service --configuration=production
