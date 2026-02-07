@@ -78,6 +78,7 @@ jobs:
             docker run -d \
               --restart always \
               -p 3008:3008 \
+              --add-host host.docker.internal:host-gateway \
               --name auth-service-staging \
               -e 'PORT=3008' \
               -e 'NODE_ENV=production' \
