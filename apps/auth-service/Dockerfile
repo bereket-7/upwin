@@ -9,6 +9,10 @@ WORKDIR /app
 COPY apps/auth-service/package*.json ./
 RUN npm install --ignore-scripts
 
+# Copy Prisma schema and engine
+COPY apps/auth-service/prisma ./prisma/
+RUN npx prisma generate --schema=./prisma/schema.prisma
+
 # Copy built application code
 COPY apps/auth-service/dist/ ./
 
@@ -21,4 +25,5 @@ USER nestjs
 
 EXPOSE 3008
 
-CMD ["node", "main.js"]
+# Run migrations and then start the application
+CMD npx prisma migrate deploy --schema=./prisma/schema.prisma && node main.js
