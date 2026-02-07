@@ -124,7 +124,22 @@ export class AuthService {
     });
 
     // Send verification email
-    await this.emailService.sendVerificationEmail(email, verificationToken);
+    try {
+      await this.emailService.sendVerificationEmail(email, verificationToken);
+    } catch (error) {
+      console.error('Failed to send verification email during registration:', error);
+      return {
+        message: 'Account created successfully, but we could not send the verification email. Please try resending it from your profile or login page.',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+        },
+      };
+    }
 
     return {
       message: 'Account created successfully. Please verify your email.',
