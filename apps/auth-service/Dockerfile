@@ -9,8 +9,9 @@ WORKDIR /app
 COPY apps/auth-service/package*.json ./
 RUN npm install --ignore-scripts
 
-# Copy Prisma schema and engine
+# Copy Prisma schema, engine, and configuration
 COPY apps/auth-service/prisma ./prisma/
+COPY apps/auth-service/prisma.config.ts ./
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copy built application code
