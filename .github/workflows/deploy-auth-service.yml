@@ -77,19 +77,19 @@ jobs:
               --restart always \
               -p 3008:3008 \
               --name auth-service-staging \
-              -e PORT=3008 \
-              -e NODE_ENV=production \
-              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-              -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
-              -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-              -e LINKEDIN_CLIENT_ID="${{ secrets.LINKEDIN_CLIENT_ID }}" \
-              -e LINKEDIN_CLIENT_SECRET="${{ secrets.LINKEDIN_CLIENT_SECRET }}" \
-              -e CALLBACK_URL="${{ secrets.CALLBACK_URL }}" \
-              -e SMTP_HOST="${{ secrets.SMTP_HOST }}" \
-              -e SMTP_PORT="${{ secrets.SMTP_PORT }}" \
-              -e SMTP_USER="${{ secrets.SMTP_USER }}" \
-              -e SMTP_PASS="${{ secrets.SMTP_PASS }}" \
-              -e SMTP_FROM="${{ secrets.SMTP_FROM }}" \
+              -e 'PORT=3008' \
+              -e 'NODE_ENV=production' \
+              -e 'DATABASE_URL=${{ secrets.DATABASE_URL }}' \
+              -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
+              -e 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' \
+              -e 'GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}' \
+              -e 'LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}' \
+              -e 'LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}' \
+              -e 'CALLBACK_URL=${{ secrets.CALLBACK_URL }}' \
+              -e 'SMTP_HOST=${{ secrets.SMTP_HOST }}' \
+              -e 'SMTP_PORT=${{ secrets.SMTP_PORT }}' \
+              -e 'SMTP_USER=${{ secrets.SMTP_USER }}' \
+              -e 'SMTP_PASS=${{ secrets.SMTP_PASS }}' \
+              -e 'SMTP_FROM=${{ secrets.SMTP_FROM }}' \
               ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
           EOF
