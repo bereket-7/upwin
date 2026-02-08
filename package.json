@@ -19,7 +19,7 @@
     "@types/node": "20.19.9",
     "lodash": "^4.17.23",
     "nx": "22.4.0",
-    "prettier": "^2.6.2",
+    "prettier": "~3.6.2",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
     "webpack-cli": "^5.1.4"
@@ -28,6 +28,8 @@
     "packages/*",
     "apps/auth-service",
     "apps/auth-service-e2e",
+    "apps/profile-service",
+    "apps/profile-service-e2e",
     "libs/*"
   ],
   "dependencies": {
