@@ -1,0 +1,21 @@
+{
+  "name": "@org/profile-service",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@prisma/client": "^7.3.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.16",
+    "@nestjs/testing": "^11.0.0",
+    "prisma": "^7.3.0",
+    "ts-node": "^10.9.0",
+    "tsconfig-paths": "^4.2.0"
+  }
+}
