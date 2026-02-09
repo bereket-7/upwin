@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '../../generated/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -17,5 +17,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleDestroy() {
     await this.$disconnect();
+  }
+
+  async enableShutdownHooks(app: any) {
+    // Note: enableShutdownHooks is handled differently in modern NestJS/Prisma 5+
+    // But we'll follow the request for a custom method if needed.
+    process.on('beforeExit', async () => {
+      await app.close();
+    });
   }
 }
