@@ -36,4 +36,9 @@ export class ProfileController {
   remove(@Param('id') id: string, @Headers('x-user-id') userId: string) {
     return this.profileService.remove(id, userId);
   }
+
+  @Post('import')
+  importFromUpwork(@Headers('x-user-id') userId: string, @Body() upworkData: any) {
+    return this.profileService.importFromUpwork(userId, upworkData);
+  }
 }

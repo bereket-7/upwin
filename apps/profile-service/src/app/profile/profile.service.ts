@@ -9,20 +9,38 @@ export class ProfileService {
   constructor(private prisma: PrismaService) {}
 
   async create(createProfileDto: CreateProfileDto): Promise<Profile> {
+    const { portfolio, workHistory, ...profileData } = createProfileDto;
+
     return this.prisma.profile.create({
-      data: createProfileDto,
+      data: {
+        ...profileData,
+        portfolio: portfolio ? { create: portfolio } : undefined,
+        workHistory: workHistory ? { create: workHistory } : undefined,
+      },
+      include: {
+        portfolio: true,
+        workHistory: true,
+      },
     });
   }
 
   async findAllForUser(userId: string): Promise<Profile[]> {
     return this.prisma.profile.findMany({
       where: { userId },
+      include: {
+        portfolio: true,
+        workHistory: true,
+      },
     });
   }
 
   async findOne(id: string, userId: string): Promise<Profile> {
     const profile = await this.prisma.profile.findUnique({
       where: { id },
+      include: {
+        portfolio: true,
+        workHistory: true,
+      },
     });
 
     if (!profile) {
@@ -40,9 +58,19 @@ export class ProfileService {
     // Check ownership first
     await this.findOne(id, userId);
 
+    const { portfolio, workHistory, ...profileData } = updateProfileDto;
+
     return this.prisma.profile.update({
       where: { id },
-      data: updateProfileDto,
+      data: {
+        ...profileData,
+        portfolio: portfolio ? { deleteMany: {}, create: portfolio } : undefined,
+        workHistory: workHistory ? { deleteMany: {}, create: workHistory } : undefined,
+      },
+      include: {
+        portfolio: true,
+        workHistory: true,
+      },
     });
   }
 
@@ -53,5 +81,68 @@ export class ProfileService {
     return this.prisma.profile.delete({
       where: { id },
     });
+  }
+
+  async importFromUpwork(userId: string, upworkData: any): Promise<Profile> {
+    // Check if profile with this upworkId already exists
+    const existing = upworkData.id
+      ? await this.prisma.profile.findUnique({
+          where: { upworkId: upworkData.id },
+          include: { portfolio: true, workHistory: true },
+        })
+      : null;
+
+    const profileData = {
+      userId,
+      upworkId: upworkData.id,
+      name: upworkData.name,
+      avatar: upworkData.avatar,
+      location: upworkData.location,
+      country: upworkData.country,
+      city: upworkData.city,
+      title: upworkData.title,
+      description: upworkData.description,
+      skills: upworkData.skills || [],
+      hourlyRate: upworkData.hourlyRate ? parseFloat(upworkData.hourlyRate.replace(/[$,]/g, '')) : undefined,
+      totalEarnings: upworkData.totalEarnings,
+      totalJobs: upworkData.totalJobs,
+      totalHours: upworkData.totalHours,
+      syncedAt: upworkData.syncedAt ? new Date(upworkData.syncedAt) : new Date(),
+    };
+
+    if (existing) {
+      // Update existing profile and replace portfolio/work history
+      return this.prisma.profile.update({
+        where: { id: existing.id },
+        data: {
+          ...profileData,
+          portfolio: {
+            deleteMany: {},
+            create: upworkData.portfolio || [],
+          },
+          workHistory: {
+            deleteMany: {},
+            create: upworkData.workHistory || [],
+          },
+        },
+        include: {
+          portfolio: true,
+          workHistory: true,
+        },
+      });
+    } else {
+      // Create new profile
+      return this.prisma.profile.create({
+        data: {
+          ...profileData,
+          portfolio: upworkData.portfolio ? { create: upworkData.portfolio } : undefined,
+          workHistory: upworkData.workHistory ? { create: upworkData.workHistory } : undefined,
+        },
+        include: {
+          portfolio: true,
+          workHistory: true,
+        },
+      });
+    }
   }
 }

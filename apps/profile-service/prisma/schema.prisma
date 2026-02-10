@@ -11,22 +11,77 @@ datasource db {
 }
 
 model Profile {
-  id            String   @id @default(uuid())
-  userId        String
+  id              String   @id @default(uuid())
+  userId          String
 
-  title         String?
-  overview      String?
-  skills        String[]
-  hourlyRate    Float?
-  experienceYrs Int?
+  // Upwork source data
+  upworkId        String?  @unique
+  name            String?
+  avatar          String?
+  location        String?
+  country         String?
+  city            String?
 
-  tone          String?
-  writingStyle  String?
+  // Profile content
+  title           String?
+  description     String?  // Main profile description/overview
+  skills          String[]
+  hourlyRate      Float?
+  experienceYrs   Int?
 
-  rawText       String?
+  // Upwork stats
+  totalEarnings   String?
+  totalJobs       String?
+  totalHours      String?
+  syncedAt        DateTime?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  // AI customization fields
+  tone            String?
+  writingStyle    String?
+  rawText         String?
+
+  // Relations
+  portfolio       PortfolioItem[]
+  workHistory     WorkHistoryItem[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([userId])
+  @@index([upworkId])
+}
+
+model PortfolioItem {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  title       String
+  image       String?
+  description String?
+  role        String?
+  skills      String[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
+}
+
+model WorkHistoryItem {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  title       String
+  dates       String?
+  totalEarned String?
+  hours       String?
+  hourlyRate  String?
+  rawStats    String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
 }
