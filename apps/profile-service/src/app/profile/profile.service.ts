@@ -2,7 +2,17 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { PaginationDto } from './dto/pagination.dto';
+import { ImportUpworkDto } from './dto/import-upwork.dto';
 import { Profile } from '../../generated/client';
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
 @Injectable()
 export class ProfileService {
@@ -24,14 +34,34 @@ export class ProfileService {
     });
   }
 
-  async findAllForUser(userId: string): Promise<Profile[]> {
-    return this.prisma.profile.findMany({
-      where: { userId },
-      include: {
-        portfolio: true,
-        workHistory: true,
-      },
-    });
+  async findAllForUser(
+    userId: string,
+    pagination: PaginationDto
+  ): Promise<PaginatedResponse<Profile>> {
+    const { page = 1, limit = 10 } = pagination;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.prisma.profile.findMany({
+        where: { userId },
+        skip,
+        take: limit,
+        include: {
+          portfolio: true,
+          workHistory: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.profile.count({ where: { userId } }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: string, userId: string): Promise<Profile> {
@@ -83,7 +113,7 @@ export class ProfileService {
     });
   }
 
-  async importFromUpwork(userId: string, upworkData: any): Promise<Profile> {
+  async importFromUpwork(userId: string, upworkData: ImportUpworkDto): Promise<Profile> {
     // Check if profile with this upworkId already exists
     const existing = upworkData.id
       ? await this.prisma.profile.findUnique({
@@ -103,7 +133,7 @@ export class ProfileService {
       title: upworkData.title,
       description: upworkData.description,
       skills: upworkData.skills || [],
-      hourlyRate: upworkData.hourlyRate ? parseFloat(upworkData.hourlyRate.replace(/[$,]/g, '')) : undefined,
+      hourlyRate: upworkData.hourlyRate,
       totalEarnings: upworkData.totalEarnings,
       totalJobs: upworkData.totalJobs,
       totalHours: upworkData.totalHours,
