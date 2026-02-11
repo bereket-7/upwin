@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from '@org/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -7,6 +8,7 @@ export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Public()
+  @SkipThrottle() // No rate limiting for health checks
   @Get()
   async check() {
     try {
@@ -18,6 +20,11 @@ export class HealthController {
         timestamp: new Date().toISOString(),
         service: 'profile-service',
         database: 'connected',
+        rateLimit: {
+          short: '10 requests/second',
+          medium: '50 requests/10 seconds',
+          long: '100 requests/minute',
+        },
       };
     } catch (error) {
       return {
