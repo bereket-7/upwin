@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { BaseJwtAuthGuard, ITokenBlacklistService } from './base-jwt-auth.guard';
+import type { ITokenBlacklistService } from './base-jwt-auth.guard';
+import { BaseJwtAuthGuard } from './base-jwt-auth.guard';
 
 /**
  * Standard JWT authentication guard.

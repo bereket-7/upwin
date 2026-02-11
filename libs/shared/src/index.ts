@@ -4,4 +4,4 @@ export * from './lib/auth';
 export * from './lib/database';
 
 // Legacy export for backward compatibility
-export * from './lib/shared.js';
+export * from './lib/shared';

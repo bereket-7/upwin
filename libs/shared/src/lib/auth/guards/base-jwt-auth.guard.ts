@@ -35,7 +35,7 @@ export class BaseJwtAuthGuard extends AuthGuard('jwt') {
   /**
    * Check if route is marked as public using @Public() decorator
    */
-  canActivate(context: ExecutionContext) {
+  override canActivate(context: ExecutionContext) {
     if (this.reflector) {
       const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
         context.getHandler(),
