@@ -1,21 +1,59 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
-
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
+import { AllExceptionsFilter } from './app/common/filters/http-exception.filter';
+import { LoggingInterceptor } from './app/common/interceptors/logging.interceptor';
+import { ConfigService } from './app/config/config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Get config service
+  const configService = app.get(ConfigService);
+  
+  // Global prefix
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
-  const port = process.env.PORT || 3009;
-  await app.listen(port);
-  Logger.log(
-    `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
+  
+  // CORS configuration
+  app.enableCors({
+    origin: configService.getAllowedOrigins(),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+  
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    })
   );
+  
+  // Global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
+  
+  // Global logging interceptor
+  if (!configService.isProduction()) {
+    app.useGlobalInterceptors(new LoggingInterceptor());
+  }
+  
+  const port = configService.getPort();
+  await app.listen(port);
+  
+  Logger.log(
+    `🚀 Profile Service is running on: http://localhost:${port}/${globalPrefix}`
+  );
+  Logger.log(
+    `📚 Health check available at: http://localhost:${port}/${globalPrefix}/health`
+  );
+  Logger.log(`🔒 JWT Authentication enabled`);
+  Logger.log(`🛡️  Rate limiting: 100 requests/minute`);
 }
 
 bootstrap();
