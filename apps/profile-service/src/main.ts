@@ -53,7 +53,11 @@ async function bootstrap() {
     `📚 Health check available at: http://localhost:${port}/${globalPrefix}/health`
   );
   Logger.log(`🔒 JWT Authentication enabled`);
-  Logger.log(`🛡️  Rate limiting: 100 requests/minute`);
+  Logger.log(`🛡️  Rate limiting (per user):`);
+  Logger.log(`   - Short: 10 requests/second`);
+  Logger.log(`   - Medium: 50 requests/10 seconds`);
+  Logger.log(`   - Long: 100 requests/minute`);
+  Logger.log(`   - Import: 2 requests/second`);
 }
 
 bootstrap();

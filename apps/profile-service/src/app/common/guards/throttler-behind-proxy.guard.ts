@@ -4,10 +4,19 @@ import { Injectable } from '@nestjs/common';
 /**
  * Custom throttler guard that uses user ID instead of IP address.
  * Falls back to IP if user is not authenticated.
+ * 
+ * Features:
+ * - Per-user rate limiting for authenticated users
+ * - Per-IP rate limiting for anonymous users
+ * - Handles proxies and load balancers
  */
 @Injectable()
 export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
-  protected async getTracker(req: Record<string, any>): Promise<string> {
+  /**
+   * Get the tracking key for rate limiting.
+   * Uses user ID if authenticated, otherwise uses IP address.
+   */
+  protected override async getTracker(req: Record<string, any>): Promise<string> {
     // If user is authenticated, use their user ID
     if (req.user?.userId) {
       return `user:${req.user.userId}`;
@@ -17,9 +26,11 @@ export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
     // Handle proxies by checking X-Forwarded-For header
     const forwardedFor = req.headers['x-forwarded-for'];
     if (forwardedFor) {
-      return forwardedFor.split(',')[0].trim();
+      const ip = forwardedFor.split(',')[0].trim();
+      return `ip:${ip}`;
     }
 
-    return req.ip || req.connection.remoteAddress;
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    return `ip:${ip}`;
   }
 }
