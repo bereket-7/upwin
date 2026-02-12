@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProfileType {
+  CUSTOM
+  UPWORK_IMPORT
+}
+
+model Profile {
+  id              String      @id @default(uuid())
+  userId          String
+  type            ProfileType @default(CUSTOM)
+
+  // Upwork source data
+  upworkId        String?     @unique
+  name            String?
+  avatar          String?
+  location        String?
+  country         String?
+  city            String?
+
+  // Profile content
+  title           String?
+  description     String?  // Main profile description/overview
+  skills          String[]
+  hourlyRate      Float?
+  experienceYrs   Int?
+
+  // Upwork stats
+  totalEarnings   String?
+  totalJobs       String?
+  totalHours      String?
+  syncedAt        DateTime?
+
+  // AI customization fields
+  tone            String?
+  writingStyle    String?
+  rawText         String?
+
+  // Relations
+  portfolio       PortfolioItem[]
+  workHistory     WorkHistoryItem[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([upworkId])
+}
+
+model PortfolioItem {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  title       String
+  image       String?
+  description String?
+  role        String?
+  skills      String[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
+}
+
+model WorkHistoryItem {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  title       String
+  dates       String?
+  totalEarned String?
+  hours       String?
+  hourlyRate  String?
+  rawStats    String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
+}

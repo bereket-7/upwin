@@ -1,22 +1,24 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '../../generated/prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { Injectable } from '@nestjs/common';
+import { BasePrismaService } from '@org/shared';
+import type { PrismaPg } from '@prisma/adapter-pg';
 import { ConfigService } from '../config/config.service';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService extends BasePrismaService<any> {
   constructor(configService: ConfigService) {
-    const pool = new Pool({ connectionString: configService.getDatabaseUrl() });
-    const adapter = new PrismaPg(pool);
-    super({ adapter });
+    super({
+      databaseUrl: configService.getDatabaseUrl(),
+      enableLogging: process.env.NODE_ENV !== 'production',
+    });
   }
 
-  async onModuleInit() {
-    await this.$connect();
+  protected createClient(adapter: PrismaPg): any {
+    const { PrismaClient } = require('../../generated/prisma/client');
+    return new PrismaClient({ adapter });
   }
 
-  async onModuleDestroy() {
-    await this.$disconnect();
+  // Proxy Prisma models for easy access
+  get user() {
+    return this.client.user;
   }
 }

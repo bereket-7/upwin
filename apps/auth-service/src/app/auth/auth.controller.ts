@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
+import { CurrentUser } from '@org/shared';
 import { AuthService } from './auth.service';
 import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse } from './auth.service';
 import { ConfigService } from '../config/config.service';
@@ -62,14 +63,17 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@Request() req: { user: AuthenticatedUser }): Promise<UserProfile> {
-    return this.authService.getProfile(req.user.userId);
+  async getProfile(@CurrentUser() user: AuthenticatedUser): Promise<UserProfile> {
+    return this.authService.getProfile(user.userId);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req: { user: AuthenticatedUser; headers: { authorization?: string } }): Promise<{ message: string }> {
+  async logout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Request() req: { headers: { authorization?: string } }
+  ): Promise<{ message: string }> {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       this.tokenBlacklistService.blacklistToken(token);
