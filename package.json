@@ -36,7 +36,7 @@
     "@google/generative-ai": "^0.24.1",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/common": "^11.0.0",
-    "@nestjs/config": "^4.0.3",
+    "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@types/nodemailer": "^7.0.9",

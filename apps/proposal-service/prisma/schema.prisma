@@ -12,50 +12,57 @@ datasource db {
 
 enum ProposalStatus {
   DRAFT
-  GENERATED
-  EDITED
-  SUBMITTED
+  SENT
   ARCHIVED
 }
 
 model Proposal {
-  id              String          @id @default(uuid())
-  userId          String
-  profileId       String
+  id             String            @id @default(uuid())
+  userId         String
+  profileId      String
   
   // Job details
-  jobTitle        String?
-  jobDescription  String          @db.Text
-  jobUrl          String?
+  jobSource      String            // "upwork", "freelancer", etc.
+  jobUrl         String?
+  jobTitle       String?
+  jobDescription String?           @db.Text
   
-  // Generated proposal
-  content         String          @db.Text
-  tone            String?
-  length          String?
-  style           String?
+  // Version tracking
+  currentVersion Int               @default(1)
   
-  // Metadata
-  status          ProposalStatus  @default(GENERATED)
-  wordCount       Int?
-  generatedAt     DateTime        @default(now())
-  submittedAt     DateTime?
+  // Status
+  status         ProposalStatus    @default(DRAFT)
   
-  // Versioning
-  version         Int             @default(1)
-  parentId        String?
-  parent          Proposal?       @relation("ProposalVersions", fields: [parentId], references: [id], onDelete: SetNull)
-  versions        Proposal[]      @relation("ProposalVersions")
+  // Timestamps
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
   
-  // AI metadata
-  aiModel         String?
-  ragUsed         Boolean         @default(false)
-  streamingUsed   Boolean         @default(false)
-  
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  // Relations
+  versions       ProposalVersion[]
 
   @@index([userId])
   @@index([profileId])
   @@index([status])
   @@index([createdAt])
+}
+
+model ProposalVersion {
+  id         String   @id @default(uuid())
+  proposalId String
+  version    Int
+  
+  // Content
+  content    String   @db.Text
+  
+  // Metadata about how this was generated
+  promptMeta Json?    // { tone, style, length, profileOverrides }
+  
+  // Timestamp
+  createdAt  DateTime @default(now())
+  
+  // Relations
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, version])
+  @@index([proposalId])
 }
