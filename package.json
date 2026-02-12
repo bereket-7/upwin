@@ -17,6 +17,8 @@
     "@swc/helpers": "~0.5.11",
     "@types/lodash": "^4.17.23",
     "@types/node": "20.19.9",
+    "json-buffer": "^3.0.1",
+    "keyv": "^4.5.4",
     "lodash": "^4.17.23",
     "nx": "22.4.0",
     "prettier": "~3.6.2",
