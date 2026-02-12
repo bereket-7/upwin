@@ -1,11 +1,20 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 export interface PrismaServiceConfig {
   databaseUrl: string;
   enableLogging?: boolean;
+}
+
+/**
+ * Minimal interface describing the Prisma client methods this base
+ * service relies on. This avoids a hard dependency on the generated
+ * `@prisma/client` types, which may live in app-specific output paths.
+ */
+interface PrismaLikeClient {
+  $connect(): Promise<void>;
+  $disconnect(): Promise<void>;
 }
 
 /**
@@ -32,7 +41,7 @@ export interface PrismaServiceConfig {
  * ```
  */
 @Injectable()
-export abstract class BasePrismaService<T extends PrismaClient>
+export abstract class BasePrismaService<T extends PrismaLikeClient>
   implements OnModuleInit, OnModuleDestroy
 {
   protected readonly logger = new Logger(this.constructor.name);
