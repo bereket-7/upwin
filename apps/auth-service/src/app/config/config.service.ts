@@ -94,6 +94,13 @@ export class ConfigService {
   }
 
   getSmtpFrom(): string {
+    const fromName = process.env.SMTP_FROM_NAME;
+    const fromEmail = process.env.SMTP_FROM_EMAIL;
+    
+    if (fromName && fromEmail) {
+      return `"${fromName}" <${fromEmail}>`;
+    }
+    
     return process.env.SMTP_FROM || '"Upwin Support" <noreply@upwin.com>';
   }
 

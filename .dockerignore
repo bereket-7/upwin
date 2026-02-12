@@ -1,0 +1,9 @@
+# Docker defaults
+node_modules
+tmp
+coverage
+.git
+.github
+.nx
+.vscode
+.env

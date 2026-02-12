@@ -64,14 +64,17 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@Request() req: { user: AuthenticatedUser }): Promise<UserProfile> {
-    return this.authService.getProfile(req.user.userId);
+  async getProfile(@CurrentUser() user: AuthenticatedUser): Promise<UserProfile> {
+    return this.authService.getProfile(user.userId);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req: { user: AuthenticatedUser; headers: { authorization?: string } }): Promise<{ message: string }> {
+  async logout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Request() req: { headers: { authorization?: string } }
+  ): Promise<{ message: string }> {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (token) {
       this.tokenBlacklistService.blacklistToken(token);

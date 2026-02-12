@@ -15,7 +15,7 @@ import { ConfigService } from '../config/config.service';
         transport: {
           host: configService.getSmtpHost(),
           port: configService.getSmtpPort(),
-          secure: false, // true for 465, false for other ports
+          secure: configService.getSmtpPort() === 465, // true for 465, false for other ports
           auth: {
             user: configService.getSmtpUser(),
             pass: configService.getSmtpPass(),

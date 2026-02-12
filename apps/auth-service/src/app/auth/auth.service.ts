@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
-import * as crypto from 'crypto';
+import { hashPassword, comparePassword, generateVerificationToken, addHours } from '@org/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { UserProfile } from './auth.types';
@@ -67,7 +66,7 @@ export class AuthService {
       where: { email },
     });
 
-    if (user && user.password && await bcrypt.compare(password, user.password)) {
+    if (user && user.password && await comparePassword(password, user.password)) {
       const { password, ...result } = user;
       return result as UserProfile;
     }
@@ -105,10 +104,10 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await hashPassword(password);
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const verificationToken = generateVerificationToken();
+    const verificationExpires = addHours(new Date(), 24); // 24 hours
 
     const user = await this.prisma.user.create({
       data: {
@@ -124,7 +123,22 @@ export class AuthService {
     });
 
     // Send verification email
-    await this.emailService.sendVerificationEmail(email, verificationToken);
+    try {
+      await this.emailService.sendVerificationEmail(email, verificationToken);
+    } catch (error) {
+      console.error('Failed to send verification email during registration:', error);
+      return {
+        message: 'Account created successfully, but we could not send the verification email. Please try resending it from your profile or login page.',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+        },
+      };
+    }
 
     return {
       message: 'Account created successfully. Please verify your email.',
@@ -250,8 +264,8 @@ export class AuthService {
       throw new BadRequestException('Email already verified');
     }
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const verificationToken = generateVerificationToken();
+    const verificationExpires = addHours(new Date(), 24);
 
     await this.prisma.user.update({
       where: { id: user.id },

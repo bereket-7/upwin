@@ -1,0 +1,99 @@
+name: Staging Auth-Service
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: |
+          cd apps/auth-service
+          npx prisma generate
+
+      - name: Build Auth Service
+        run: npx nx build auth-service --configuration=production
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Verify Build Output
+        run: |
+          echo "=== Checking for dist folder ==="
+          ls -la dist/apps/auth-service || echo "dist/apps/auth-service not found!"
+          echo ""
+          echo "=== Searching for any dist folders ==="
+          find . -type d -name "dist" -o -name "build" 2>/dev/null || echo "No dist or build folders found"
+          echo ""
+          echo "=== Checking apps/auth-service directory ==="
+          ls -la apps/auth-service/
+          echo ""
+          echo "=== Root directory contents ==="
+          ls -la
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -f apps/auth-service/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/auth-service:staging .
+          docker push ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        run: |
+          # Install sshpass for password-based SSH
+          sudo apt-get update && sudo apt-get install -y sshpass
+
+          # Deploy using SSH with password
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+            # Pull the new image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
+            
+            # Stop and remove the existing container if it exists
+            docker stop auth-service-staging || true
+            docker rm auth-service-staging || true
+            
+            # Run the new container with environment variables
+            docker run -d \
+              --restart always \
+              -p 3008:3008 \
+              --add-host host.docker.internal:host-gateway \
+              --name auth-service-staging \
+              -e 'PORT=3008' \
+              -e 'NODE_ENV=production' \
+              -e 'DATABASE_URL=${{ secrets.DATABASE_URL }}' \
+              -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
+              -e 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' \
+              -e 'GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}' \
+              -e 'LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}' \
+              -e 'LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}' \
+              -e 'CALLBACK_URL=${{ secrets.CALLBACK_URL }}' \
+              -e 'SMTP_HOST=${{ secrets.SMTP_HOST }}' \
+              -e 'SMTP_PORT=${{ secrets.SMTP_PORT }}' \
+              -e 'SMTP_USER=${{ secrets.SMTP_USER }}' \
+              -e 'SMTP_PASS=${{ secrets.SMTP_PASS }}' \
+              -e 'SMTP_FROM_NAME=${{ secrets.SMTP_FROM_NAME }}' \
+              -e 'SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}' \
+              ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
+          EOF
