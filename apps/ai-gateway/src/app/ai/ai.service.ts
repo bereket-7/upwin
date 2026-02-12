@@ -2,6 +2,7 @@ import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ProfileClient } from './http/profile.client';
 import { PromptBuilder } from './prompt.builder';
 import { GeminiConfig } from './config/gemini.config';
+import { RagService } from './rag/rag.service';
 import { GenerateProposalDto, ProposalResponseDto } from './dto/generate-proposal.dto';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class AiService {
     private readonly profileClient: ProfileClient,
     private readonly promptBuilder: PromptBuilder,
     private readonly geminiConfig: GeminiConfig,
+    private readonly ragService: RagService,
   ) {}
 
   async generateProposal(dto: GenerateProposalDto): Promise<ProposalResponseDto> {
@@ -22,11 +24,23 @@ export class AiService {
       this.logger.log(`Starting proposal generation for profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId);
 
-      // Step 2: Build structured prompt
-      this.logger.log('Building prompt from profile and job description');
-      const { system, user } = this.promptBuilder.buildPrompt(profile, jobDescription);
+      // Step 2: Retrieve RAG context (Phase 2)
+      this.logger.log('Retrieving RAG context from Qdrant');
+      const ragContext = await this.ragService.retrieveContext(jobDescription, profile);
+      
+      if (ragContext.totalRetrieved > 0) {
+        this.logger.log(
+          `RAG context retrieved: ${ragContext.proposalExamples.length} examples, ${ragContext.writingTemplates.length} templates`
+        );
+      } else {
+        this.logger.warn('No RAG context retrieved, proceeding with profile data only');
+      }
 
-      // Step 3: Call Gemini 1.5 API
+      // Step 3: Build structured prompt with RAG context
+      this.logger.log('Building prompt with RAG context');
+      const { system, user } = this.promptBuilder.buildPrompt(profile, jobDescription, ragContext);
+
+      // Step 4: Call Gemini 1.5 API
       this.logger.log('Calling Gemini 1.5 API');
       const model = this.geminiConfig.getModel();
 
@@ -44,9 +58,11 @@ export class AiService {
         );
       }
 
-      this.logger.log(`Successfully generated proposal (${proposal.length} characters)`);
+      this.logger.log(
+        `Successfully generated proposal (${proposal.length} characters) with RAG enhancement`
+      );
 
-      // Step 4: Return generated proposal
+      // Step 5: Return generated proposal
       return {
         proposal: proposal.trim(),
       };
