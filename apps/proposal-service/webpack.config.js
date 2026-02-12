@@ -9,6 +9,12 @@ module.exports = {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
   },
+  ignoreWarnings: [
+    {
+      module: /generated\/client/,
+    },
+    /Failed to parse source map/,
+  ],
   plugins: [
     new NxAppWebpackPlugin({
       target: 'node',
