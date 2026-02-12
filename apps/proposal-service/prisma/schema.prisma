@@ -1,0 +1,61 @@
+// Proposal Service Schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProposalStatus {
+  DRAFT
+  GENERATED
+  EDITED
+  SUBMITTED
+  ARCHIVED
+}
+
+model Proposal {
+  id              String          @id @default(uuid())
+  userId          String
+  profileId       String
+  
+  // Job details
+  jobTitle        String?
+  jobDescription  String          @db.Text
+  jobUrl          String?
+  
+  // Generated proposal
+  content         String          @db.Text
+  tone            String?
+  length          String?
+  style           String?
+  
+  // Metadata
+  status          ProposalStatus  @default(GENERATED)
+  wordCount       Int?
+  generatedAt     DateTime        @default(now())
+  submittedAt     DateTime?
+  
+  // Versioning
+  version         Int             @default(1)
+  parentId        String?
+  parent          Proposal?       @relation("ProposalVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  versions        Proposal[]      @relation("ProposalVersions")
+  
+  // AI metadata
+  aiModel         String?
+  ragUsed         Boolean         @default(false)
+  streamingUsed   Boolean         @default(false)
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([profileId])
+  @@index([status])
+  @@index([createdAt])
+}
