@@ -6,16 +6,19 @@ import { ProfileClient } from './http/profile.client';
 import { PromptBuilder } from './prompt.builder';
 import { GeminiConfig } from './config/gemini.config';
 import { RagModule } from './rag/rag.module';
+import { AiStreamingController } from './streaming/ai-streaming.controller';
+import { AiStreamingService } from './streaming/ai-streaming.service';
 
 @Module({
   imports: [ConfigModule, RagModule],
-  controllers: [AiController],
+  controllers: [AiController, AiStreamingController],
   providers: [
     AiService,
+    AiStreamingService,
     ProfileClient,
     PromptBuilder,
     GeminiConfig,
   ],
-  exports: [AiService],
+  exports: [AiService, AiStreamingService],
 })
 export class AiModule {}
