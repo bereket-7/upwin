@@ -10,12 +10,18 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ProfileType {
+  CUSTOM
+  UPWORK_IMPORT
+}
+
 model Profile {
-  id              String   @id @default(uuid())
+  id              String      @id @default(uuid())
   userId          String
+  type            ProfileType @default(CUSTOM)
 
   // Upwork source data
-  upworkId        String?  @unique
+  upworkId        String?     @unique
   name            String?
   avatar          String?
   location        String?
