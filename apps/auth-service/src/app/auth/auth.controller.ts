@@ -14,7 +14,8 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
-import { CurrentUser } from '@org/shared';
+import { join } from 'path';
+import { readFileSync } from 'fs';
 import { AuthService } from './auth.service';
 import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse } from './auth.service';
 import { ConfigService } from '../config/config.service';
@@ -128,5 +129,22 @@ export class AuthController {
 
     const user = await this.authService.getProfile(userId);
     return this.authService.generateTokenForUser(user);
+  }
+
+  @Get('success')
+  async success(@Query('code') code: string) {
+    return {
+      message: 'SSO Login Successful',
+      authCode: code,
+      instructions: 'You can now exchange this code for a JWT token using the /auth/exchange endpoint.'
+    };
+  }
+
+  @Get('test-dashboard')
+  async testDashboard(@Res() res: Response) {
+    const htmlPath = join(__dirname, '..', '..', 'assets', 'templates', 'test-auth.html');
+    const html = readFileSync(htmlPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
   }
 }
