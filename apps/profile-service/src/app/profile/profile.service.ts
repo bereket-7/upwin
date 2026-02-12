@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -24,6 +24,7 @@ export class ProfileService {
     return this.prisma.profile.create({
       data: {
         ...profileData,
+        type: 'CUSTOM', // Always CUSTOM for direct creation
         portfolio: portfolio ? { create: portfolio } : undefined,
         workHistory: workHistory ? { create: workHistory } : undefined,
       },
@@ -84,9 +85,43 @@ export class ProfileService {
     return profile;
   }
 
-  async update(id: string, userId: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
+  async updateUpworkProfile(id: string, userId: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
     // Check ownership first
-    await this.findOne(id, userId);
+    const profile = await this.findOne(id, userId);
+
+    // Only allow updates for UPWORK_IMPORT profiles
+    if (profile.type !== 'UPWORK_IMPORT') {
+      throw new BadRequestException(
+        'This endpoint is only for Upwork-imported profiles. Use PATCH /profiles/:id/custom for custom profiles.'
+      );
+    }
+
+    const { portfolio, workHistory, ...profileData } = updateProfileDto;
+
+    return this.prisma.profile.update({
+      where: { id },
+      data: {
+        ...profileData,
+        portfolio: portfolio ? { deleteMany: {}, create: portfolio } : undefined,
+        workHistory: workHistory ? { deleteMany: {}, create: workHistory } : undefined,
+      },
+      include: {
+        portfolio: true,
+        workHistory: true,
+      },
+    });
+  }
+
+  async updateCustomProfile(id: string, userId: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
+    // Check ownership first
+    const profile = await this.findOne(id, userId);
+
+    // Only allow updates for CUSTOM profiles
+    if (profile.type !== 'CUSTOM') {
+      throw new BadRequestException(
+        'This endpoint is only for custom profiles. Use PATCH /profiles/:id for Upwork-imported profiles.'
+      );
+    }
 
     const { portfolio, workHistory, ...profileData } = updateProfileDto;
 
@@ -124,6 +159,7 @@ export class ProfileService {
 
     const profileData = {
       userId,
+      type: 'UPWORK_IMPORT', // Always UPWORK_IMPORT for imports
       upworkId: upworkData.id,
       name: upworkData.name,
       avatar: upworkData.avatar,

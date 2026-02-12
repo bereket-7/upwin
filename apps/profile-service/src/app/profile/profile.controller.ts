@@ -51,14 +51,24 @@ export class ProfileController {
     return this.profileService.findOne(id, userId);
   }
 
-  @Patch(':id')
+  @Patch(':id/sync')
   @Throttle({ short: { limit: 10, ttl: 1000 } }) // 10 updates per second
-  update(
+  updateUpworkProfile(
     @Param('id') id: string,
     @CurrentUser('userId') userId: string,
     @Body() updateProfileDto: UpdateProfileDto
   ) {
-    return this.profileService.update(id, userId, updateProfileDto);
+    return this.profileService.updateUpworkProfile(id, userId, updateProfileDto);
+  }
+
+  @Patch(':id/custom')
+  @Throttle({ short: { limit: 10, ttl: 1000 } }) // 10 updates per second
+  updateCustomProfile(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() updateProfileDto: UpdateProfileDto
+  ) {
+    return this.profileService.updateCustomProfile(id, userId, updateProfileDto);
   }
 
   @Delete(':id')
