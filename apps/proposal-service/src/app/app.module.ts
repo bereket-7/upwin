@@ -5,12 +5,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
 import { AuthModule } from './auth/auth.module';
+import { ProposalModule } from './proposal/proposal.module';
 import { PrismaService } from './prisma/prisma.service';
 
 @Module({
   imports: [
     ConfigModule,
     AuthModule,
+    ProposalModule,
     ThrottlerModule.forRoot([
       {
         name: 'short',
