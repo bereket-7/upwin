@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Profile } from './interfaces/profile.interface';
+import { RagContext } from './rag/interfaces/rag.interface';
 
 @Injectable()
 export class PromptBuilder {
@@ -23,10 +24,12 @@ CRITICAL RULES:
 - Focus on value you can deliver to the client
 - End with a clear call to action
 
+IMPORTANT: Reference examples and templates are provided for INSPIRATION ONLY. They show structure and tone, but you must write original content based on YOUR profile and THIS specific job.
+
 Your goal is to sound like a skilled professional who genuinely understands the client's needs and can deliver results.`;
   }
 
-  buildUserPrompt(profile: Profile, jobDescription: string): string {
+  buildUserPrompt(profile: Profile, jobDescription: string, ragContext?: RagContext): string {
     const skills = profile.skills.length > 0 
       ? profile.skills.join(', ') 
       : 'various technical skills';
@@ -64,32 +67,70 @@ Your goal is to sound like a skilled professional who genuinely understands the 
 
     const overview = profile.description || `I'm a ${title} with ${experience} specializing in ${skills}.`;
 
-    return `Write a compelling job proposal based on the following:
+    // Build RAG context section
+    let ragContextSection = '';
+    if (ragContext && ragContext.totalRetrieved > 0) {
+      ragContextSection = this.formatRagContextForPrompt(ragContext);
+    }
 
-YOUR PROFILE:
+    return `${ragContextSection}
+
+YOUR PROFILE (AUTHORITATIVE - USE THIS):
 Title: ${title}
 Overview: ${overview}
 Skills: ${skills}
 Experience: ${experience}${portfolioContext}${workHistoryContext}${rawTextContext}
 
-JOB DESCRIPTION:
+JOB DESCRIPTION (THE CLIENT'S NEEDS):
 ${jobDescription}
 
 TASK:
-Write a personalized proposal that:
-1. Shows you understand the client's needs
-2. Explains why you're a great fit (using ONLY your actual skills and experience)
+Write a compelling job proposal that:
+1. Shows you understand the client's needs from the job description
+2. Explains why you're a great fit using ONLY your actual skills and experience from YOUR PROFILE
 3. Highlights relevant past work if applicable
 4. Demonstrates your approach to solving their problem
-5. Ends with a clear next step
+5. Uses inspiration from reference examples (if provided) for structure and tone, but writes original content
+6. Ends with a clear next step
 
 Write the proposal now:`;
   }
 
-  buildPrompt(profile: Profile, jobDescription: string): { system: string; user: string } {
+  private formatRagContextForPrompt(ragContext: RagContext): string {
+    const sections: string[] = ['CONTEXT (REFERENCE MATERIAL - FOR INSPIRATION ONLY):'];
+
+    // Add proposal examples
+    if (ragContext.proposalExamples.length > 0) {
+      sections.push('\nSuccessful Proposal Examples:');
+      ragContext.proposalExamples.forEach((example, index) => {
+        sections.push(`\nExample ${index + 1} (Score: ${example.score?.toFixed(2) || 'N/A'}):`);
+        sections.push(example.content);
+      });
+    }
+
+    // Add writing templates
+    if (ragContext.writingTemplates.length > 0) {
+      sections.push('\n\nWriting Structure Templates:');
+      ragContext.writingTemplates.forEach((template) => {
+        const section = template.metadata.section || 'general';
+        sections.push(`\n${section.toUpperCase()}:`);
+        sections.push(template.content);
+      });
+    }
+
+    sections.push('\n---\n');
+
+    return sections.join('\n');
+  }
+
+  buildPrompt(
+    profile: Profile, 
+    jobDescription: string, 
+    ragContext?: RagContext
+  ): { system: string; user: string } {
     return {
       system: this.buildSystemPrompt(profile),
-      user: this.buildUserPrompt(profile, jobDescription),
+      user: this.buildUserPrompt(profile, jobDescription, ragContext),
     };
   }
 }
