@@ -42,14 +42,19 @@ export abstract class BasePrismaService<T extends PrismaClient>
   constructor(protected readonly config: PrismaServiceConfig) {
     this.pool = new Pool({ connectionString: config.databaseUrl });
     const adapter = new PrismaPg(this.pool);
-    this.client = this.createClient(adapter);
+    // Cast adapter to any to avoid cross-project PrismaPg type conflicts
+    this.client = this.createClient(adapter as any);
   }
 
   /**
    * Factory method to create the specific Prisma client instance.
    * Must be implemented by the extending service.
+   *
+   * Note: we intentionally type the adapter as any here to avoid
+   * PrismaPg private field incompatibilities across different
+   * node_modules locations in workspaces.
    */
-  protected abstract createClient(adapter: PrismaPg): T;
+  protected abstract createClient(adapter: any): T;
 
   /**
    * Get the Prisma client instance.

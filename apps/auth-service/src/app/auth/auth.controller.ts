@@ -23,6 +23,7 @@ import { AuthCodeService } from './auth-code.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { UserProfile, AuthenticatedUser } from './auth.types';
+import { CurrentUser } from '@org/shared';
 
 @Controller('auth')
 export class AuthController {
