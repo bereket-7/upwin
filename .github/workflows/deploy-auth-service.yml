@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - staging
+    paths:
+      - 'apps/auth-service/**'
+      - 'libs/shared/**'
+      - '.github/workflows/deploy-auth-service.yml'
 
 jobs:
   build-and-push:
@@ -22,6 +26,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Build Shared Library
+        run: node libs/shared/build.js
 
       - name: Generate Prisma Client
         run: |
@@ -82,6 +89,7 @@ jobs:
               --name auth-service-staging \
               -e 'PORT=3008' \
               -e 'NODE_ENV=production' \
+              -e 'API_URL=${{ secrets.API_URL }}' \
               -e 'DATABASE_URL=${{ secrets.DATABASE_URL }}' \
               -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
               -e 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' \

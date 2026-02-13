@@ -5,18 +5,23 @@
   "dependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
-    "@nestjs/jwt": "^10.0.0",
-    "@nestjs/mapped-types": "^2.1.0",
-    "@nestjs/passport": "^10.0.0",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/mapped-types": "^2.0.5",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
-    "@nestjs/throttler": "^6.0.0",
-    "@org/shared": "*",
+    "@nestjs/terminus": "^11.0.0",
+    "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
+    "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.1",
+    "class-validator": "^0.14.3",
+    "dotenv": "^16.4.7",
+    "helmet": "^8.1.0",
+    "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.17.2",
+    "prisma": "^7.3.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0"
@@ -24,10 +29,10 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.16",
     "@nestjs/testing": "^11.0.0",
-    "@types/passport-jwt": "^4.0.0",
-    "@types/pg": "^8.11.0",
-    "prisma": "^7.3.0",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/pg": "^8.16.0",
     "ts-node": "^10.9.0",
+    "dotenv": "^16.0.0",
     "tsconfig-paths": "^4.2.0"
   }
 }

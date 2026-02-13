@@ -1,26 +1,32 @@
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-COPY apps/profile-service/package*.json ./apps/profile-service/
-COPY tsconfig.base.json ./
-COPY nx.json ./
-
-RUN npm install
-
-COPY apps/profile-service ./apps/profile-service
-COPY libs ./libs
-
-RUN npx nx build profile-service --prod
+# This Dockerfile expects the app to be built ALREADY (e.g., by Nx in CI)
+# Context must be the project root
 
 FROM node:20-alpine
-
 WORKDIR /app
 
-COPY --from=builder /app/dist/apps/profile-service ./
-COPY --from=builder /app/node_modules ./node_modules
+# Copy package.json from source and install ALL dependencies
+COPY apps/profile-service/package*.json ./
+RUN npm install --ignore-scripts
 
-EXPOSE 3001
+# Copy the COMPILED shared library (not source)
+COPY libs/shared/dist ./node_modules/@org/shared/
 
-CMD ["node", "main.js"]
+# Copy Prisma schema, engine, and configuration
+COPY apps/profile-service/prisma ./prisma/
+COPY apps/profile-service/prisma.config.ts ./
+RUN npx prisma generate --schema=./prisma/schema.prisma
+
+# Copy built application code
+COPY apps/profile-service/dist/ ./
+
+# Add a non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs && \
+    chown -R nestjs:nodejs /app
+
+USER nestjs
+
+EXPOSE 3009
+
+# Run migrations and then start the application
+CMD npx prisma migrate deploy --schema=./prisma/schema.prisma && node main.js
