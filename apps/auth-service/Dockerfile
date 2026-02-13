@@ -8,8 +8,8 @@ WORKDIR /app
 COPY apps/auth-service/package*.json ./
 RUN npm install --ignore-scripts
 
-# Copy the shared library
-COPY libs/shared ./node_modules/@org/shared/
+# Copy the COMPILED shared library (not source)
+COPY libs/shared/dist ./node_modules/@org/shared/
 
 # Copy Prisma schema, engine, and configuration
 COPY apps/auth-service/prisma ./prisma/
