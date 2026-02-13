@@ -5,9 +5,11 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package.json from source and install ALL dependencies
-# (webpack externalizes some deps, so we need everything)
 COPY apps/auth-service/package*.json ./
 RUN npm install --ignore-scripts
+
+# Copy the shared library
+COPY libs/shared ./node_modules/@org/shared/
 
 # Copy Prisma schema, engine, and configuration
 COPY apps/auth-service/prisma ./prisma/
