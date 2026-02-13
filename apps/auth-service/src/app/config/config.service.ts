@@ -17,7 +17,6 @@ export class ConfigService {
       'LINKEDIN_CLIENT_ID',
       'LINKEDIN_CLIENT_SECRET',
       'CALLBACK_URL',
-      'API_URL',
     ];
 
     const config: Record<string, string> = {};
@@ -31,6 +30,9 @@ export class ConfigService {
         config[varName] = value;
       }
     }
+
+    // Optional vars with defaults
+    config['API_URL'] = process.env.API_URL || 'http://localhost:3008/api';
 
     if (missing.length > 0) {
       throw new Error(
