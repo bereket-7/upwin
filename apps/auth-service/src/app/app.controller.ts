@@ -18,7 +18,7 @@ export class AppController {
   async check() {
     try {
       // Check database connectivity
-      await this.prisma.getClient().$queryRaw`SELECT 1`;
+      await this.prisma.$queryRaw`SELECT 1`;
       
       return {
         status: 'ok',
