@@ -7,9 +7,14 @@ import { ConfigService } from '../config/config.service';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(configService: ConfigService) {
-    const pool = new Pool({ connectionString: configService.getDatabaseUrl() });
+    const connectionString = configService.getDatabaseUrl();
+    const pool = new Pool({ connectionString });
     const adapter = new PrismaPg(pool);
-    super({ adapter });
+    
+    super({
+      adapter,
+      log: ['error', 'warn'],
+    });
   }
 
   async onModuleInit() {
