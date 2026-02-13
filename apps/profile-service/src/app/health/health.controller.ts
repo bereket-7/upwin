@@ -12,8 +12,8 @@ export class HealthController {
   @Get()
   async check() {
     try {
-      // Simple database ping using the client
-      await this.prisma.getClient().$queryRaw`SELECT 1`;
+      // Simple database ping
+      await this.prisma.$queryRaw`SELECT 1`;
       
       return {
         status: 'ok',
