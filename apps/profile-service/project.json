@@ -4,6 +4,13 @@
   "sourceRoot": "apps/profile-service/src",
   "projectType": "application",
   "targets": {
+    "serve-dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project tsconfig.app.json -r dotenv/config -r tsconfig-paths/register src/main.ts",
+        "cwd": "apps/profile-service"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "options": {
