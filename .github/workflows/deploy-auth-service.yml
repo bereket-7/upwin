@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build Shared Library
+        run: node libs/shared/build.js
+
       - name: Generate Prisma Client
         run: |
           cd apps/auth-service
