@@ -21,6 +21,8 @@ module.exports = {
       outputHashing: 'none',
       generatePackageJson: true,
       sourceMap: true,
+      // Bundle internal monorepo libraries instead of externalizing them
+      externalDependencies: 'all',
     }),
     new webpack.IgnorePlugin({
       resourceRegExp: /^pg-native$/,
