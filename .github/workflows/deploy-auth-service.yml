@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - staging
+    paths:
+      - 'apps/auth-service/**'
+      - 'libs/shared/**'
+      - '.github/workflows/deploy-auth-service.yml'
 
 jobs:
   build-and-push:
