@@ -34,7 +34,7 @@ async function bootstrap() {
   });
   
   // Start server
-  const port = configService.getPort();
+  const port = process.env.PORT || process.env.PROFILE_SERVICE_PORT || 3009;
   await app.listen(port);
   
   Logger.log(
