@@ -42,8 +42,8 @@ export class AiService {
       this.logger.log('Building prompt with RAG context');
       const { system, user } = this.promptBuilder.buildPrompt(profile, jobDescription, ragContext);
 
-      // Step 4: Call Gemini 1.5 API
-      this.logger.log('Calling Gemini 1.5 API');
+      // Step 4: Call Gemini 2.5 Flash API
+      this.logger.log("Calling Gemini 2.5 Flash API");
       const model = this.geminiConfig.getModel();
 
       // Combine system and user prompts for Gemini
