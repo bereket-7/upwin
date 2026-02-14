@@ -17,7 +17,7 @@ enum ProfileType {
 
 model Profile {
   id            String   @id @default(uuid())
-  userId        String   @unique // References Auth Service User ID
+  userId        String   // References Auth Service User ID (removed @unique to allow multiple profiles)
   type          ProfileType @default(CUSTOM)
   
   // Upwork-specific fields
