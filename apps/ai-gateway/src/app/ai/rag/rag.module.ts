@@ -5,6 +5,7 @@ import { QdrantClientService } from './qdrant.client';
 import { QdrantConfig } from './config/qdrant.config';
 import { EmbeddingService } from './embedding.service';
 import { GeminiConfig } from '../config/gemini.config';
+import { QdrantInitializerService } from './qdrant-initializer.service';
 
 @Module({
   imports: [ConfigModule],
@@ -14,7 +15,8 @@ import { GeminiConfig } from '../config/gemini.config';
     QdrantConfig,
     EmbeddingService,
     GeminiConfig,
+    QdrantInitializerService,
   ],
-  exports: [RagService],
+  exports: [RagService, QdrantInitializerService],
 })
 export class RagModule {}
