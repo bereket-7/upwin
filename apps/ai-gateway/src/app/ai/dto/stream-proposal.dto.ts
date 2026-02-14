@@ -15,6 +15,18 @@ export class StreamProposalDto {
 
   @IsString()
   @IsOptional()
+  jobSource?: string;
+
+  @IsString()
+  @IsOptional()
+  jobUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  jobTitle?: string;
+
+  @IsString()
+  @IsOptional()
   tone?: string;
 
   @IsString()
