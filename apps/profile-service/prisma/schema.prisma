@@ -10,20 +10,84 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ProfileType {
+  CUSTOM
+  UPWORK_IMPORT
+}
+
 model Profile {
   id            String   @id @default(uuid())
   userId        String   @unique // References Auth Service User ID
+  type          ProfileType @default(CUSTOM)
+  
+  // Upwork-specific fields
+  upworkId      String?  @unique
+  name          String?
+  avatar        String?
+  location      String?
+  country       String?
+  city          String?
+  
+  // Common fields
   title         String?
-  overview      String?
+  description   String?
   skills        String[]
   hourlyRate    Float?
   experienceYrs Int?
-
+  
+  // Upwork stats
+  totalEarnings String?
+  totalJobs     String?
+  totalHours    String?
+  syncedAt      DateTime?
+  
+  // AI preferences
   tone          String?
   writingStyle  String?
-
   rawText       String?
+
+  // Relations
+  portfolio     PortfolioItem[]
+  workHistory   WorkHistoryItem[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([upworkId])
+}
+
+model PortfolioItem {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  title       String
+  image       String?
+  description String?
+  role        String?
+  skills      String[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
+}
+
+model WorkHistoryItem {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  title       String
+  dates       String?
+  totalEarned String?
+  hours       String?
+  hourlyRate  String?
+  rawStats    String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
 }
