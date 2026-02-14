@@ -8,9 +8,9 @@ import {
   Delete, 
   UseGuards,
   Query,
-  Request
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { CurrentUser } from '@org/shared';
 import { ProfileService } from './profile.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -26,20 +26,18 @@ export class ProfileController {
   @Post()
   @Throttle({ short: { limit: 5, ttl: 1000 } })
   create(
-    @Request() req: any,
+    @CurrentUser('userId') userId: string,
     @Body() createProfileDto: CreateProfileDto
   ) {
-    const userId = req.user?.userId;
     return this.profileService.create({ ...createProfileDto, userId });
   }
 
   @Get()
   @Throttle({ long: { limit: 100, ttl: 60000 } })
   findAll(
-    @Request() req: any,
+    @CurrentUser('userId') userId: string,
     @Query() pagination: PaginationDto
   ) {
-    const userId = req.user?.userId;
     return this.profileService.findAllForUser(userId, pagination);
   }
 
@@ -47,9 +45,8 @@ export class ProfileController {
   @Throttle({ medium: { limit: 50, ttl: 10000 } })
   findOne(
     @Param('id') id: string,
-    @Request() req: any
+    @CurrentUser('userId') userId: string
   ) {
-    const userId = req.user?.userId;
     return this.profileService.findOne(id, userId);
   }
 
@@ -57,10 +54,9 @@ export class ProfileController {
   @Throttle({ short: { limit: 10, ttl: 1000 } })
   updateUpworkProfile(
     @Param('id') id: string,
-    @Request() req: any,
+    @CurrentUser('userId') userId: string,
     @Body() updateProfileDto: UpdateProfileDto
   ) {
-    const userId = req.user?.userId;
     return this.profileService.updateUpworkProfile(id, userId, updateProfileDto);
   }
 
@@ -68,10 +64,9 @@ export class ProfileController {
   @Throttle({ short: { limit: 10, ttl: 1000 } })
   updateCustomProfile(
     @Param('id') id: string,
-    @Request() req: any,
+    @CurrentUser('userId') userId: string,
     @Body() updateProfileDto: UpdateProfileDto
   ) {
-    const userId = req.user?.userId;
     return this.profileService.updateCustomProfile(id, userId, updateProfileDto);
   }
 
@@ -79,19 +74,17 @@ export class ProfileController {
   @Throttle({ short: { limit: 5, ttl: 1000 } })
   remove(
     @Param('id') id: string,
-    @Request() req: any
+    @CurrentUser('userId') userId: string
   ) {
-    const userId = req.user?.userId;
     return this.profileService.remove(id, userId);
   }
 
   @Post('import')
   @Throttle({ short: { limit: 2, ttl: 1000 } })
   importFromUpwork(
-    @Request() req: any,
+    @CurrentUser('userId') userId: string,
     @Body() upworkData: ImportUpworkDto
   ) {
-    const userId = req.user?.userId;
     return this.profileService.importFromUpwork(userId, upworkData);
   }
 }
