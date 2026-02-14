@@ -1,4 +1,5 @@
 name: Staging Profile-Service
+# Force rebuild with JWT_SECRET fix
 
 on:
   # Auto-deploy when profile-service files change
