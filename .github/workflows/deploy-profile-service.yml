@@ -89,5 +89,6 @@ jobs:
               -e 'NODE_ENV=production' \
               -e 'PROFILE_DATABASE_URL=${{ secrets.PROFILE_DATABASE_URL }}' \
               -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
+              -e 'ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}' \
               ${{ secrets.DOCKER_USERNAME }}/profile-service:staging
           EOF
