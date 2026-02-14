@@ -70,8 +70,9 @@ export class AiStreamingService {
           style: enhancedProfile.writingStyle,
           ragUsed: ragContext.totalRetrieved > 0,
           streamingUsed: true,
-          aiModel: 'gemini-1.5-pro',
+          aiModel: 'gemini-2.5-flash',
         },
+        authorization,
         response,
       );
 
@@ -125,6 +126,7 @@ export class AiStreamingService {
     jobDescription: string,
     content: string,
     promptMeta: any,
+    authorization: string,
     response: Response,
   ): Promise<void> {
     try {
@@ -137,7 +139,7 @@ export class AiStreamingService {
         jobDescription,
         content,
         promptMeta,
-      });
+      }, authorization);
 
       if (result) {
         // Send success event with proposal ID

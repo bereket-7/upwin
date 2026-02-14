@@ -78,8 +78,9 @@ export class AiService {
           style: profile.writingStyle,
           ragUsed: ragContext.totalRetrieved > 0,
           streamingUsed: false,
-          aiModel: 'gemini-1.5-pro',
+          aiModel: 'gemini-2.5-flash',
         },
+        authorization,
       );
 
       // Step 6: Return generated proposal immediately
@@ -130,6 +131,7 @@ export class AiService {
     jobDescription: string,
     content: string,
     promptMeta: any,
+    authorization: string,
   ): void {
     // Fire and forget - don't await
     this.proposalClient
@@ -142,7 +144,7 @@ export class AiService {
         jobDescription,
         content,
         promptMeta,
-      })
+      }, authorization)
       .catch((error) => {
         // Already logged in ProposalClientService
         this.logger.warn('Proposal save failed but generation succeeded');

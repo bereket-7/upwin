@@ -49,11 +49,21 @@ export class ProposalClientService {
    */
   async saveProposal(
     dto: CreateProposalDto,
+    authorization?: string,
   ): Promise<ProposalResponse | null> {
     try {
       this.logger.log(
         `Saving proposal for user ${dto.userId}, profile ${dto.profileId}`,
       );
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if provided
+      if (authorization) {
+        headers['Authorization'] = authorization;
+      }
 
       const response = await firstValueFrom(
         this.httpService.post<ProposalResponse>(
@@ -61,9 +71,7 @@ export class ProposalClientService {
           dto,
           {
             timeout: 5000, // 5 second timeout
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
           },
         ),
       );
