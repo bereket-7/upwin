@@ -1,9 +1,17 @@
 name: Staging Profile-Service
 
 on:
+  # Auto-deploy when profile-service files change
   push:
     branches:
       - staging
+    paths:
+      - 'apps/profile-service/**'
+      - 'libs/shared/**'
+      - '.github/workflows/deploy-profile-service.yml'
+  
+  # Manual trigger option
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -21,7 +29,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
+
+      - name: Build Shared Library
+        run: node libs/shared/build.js
 
       - name: Generate Prisma Client
         run: |
@@ -29,27 +40,21 @@ jobs:
           npx prisma generate
 
       - name: Build Profile Service
-        run: npx nx build profile-service
-
-      - name: Verify Build Output
-        run: |
-          echo "=== Checking for dist folder ==="
-          ls -la dist/apps/profile-service || echo "dist/apps/profile-service not found!"
-          echo ""
-          echo "=== Searching for any dist folders ==="
-          find . -type d -name "dist" -o -name "build" 2>/dev/null || echo "No dist or build folders found"
-          echo ""
-          echo "=== Checking apps/profile-service directory ==="
-          ls -la apps/profile-service/
-          echo ""
-          echo "=== Root directory contents ==="
-          ls -la
+        run: npx nx build profile-service --configuration=production
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Verify Build Output
+        run: |
+          echo "=== Checking profile-service build output ==="
+          ls -la apps/profile-service/dist/ || echo "apps/profile-service/dist not found!"
+          echo ""
+          echo "=== Checking shared library ==="
+          ls -la libs/shared/dist/ || echo "libs/shared/dist not found!"
 
       - name: Build and Push Docker Image
         run: |
@@ -82,8 +87,7 @@ jobs:
               --name profile-service-staging \
               -e 'PORT=3009' \
               -e 'NODE_ENV=production' \
-              -e 'DATABASE_URL=${{ secrets.PROFILE_DATABASE_URL }}' \
-              -e 'JWT_SECRET=${{ secrets.PROFILE_JWT_SECRET }}' \
-              -e 'ALLOWED_ORIGINS=${{ secrets.PROFILE_ALLOWED_ORIGINS }}' \
+              -e 'PROFILE_DATABASE_URL=${{ secrets.PROFILE_DATABASE_URL }}' \
+              -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
               ${{ secrets.DOCKER_USERNAME }}/profile-service:staging
           EOF

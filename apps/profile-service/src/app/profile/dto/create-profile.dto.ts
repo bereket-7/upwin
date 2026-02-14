@@ -1,11 +1,17 @@
-import { IsString, IsOptional, IsArray, IsNumber, IsInt, Min, IsDate, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsNumber, IsInt, Min, IsDate, ValidateNested, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PortfolioItemDto } from './portfolio-item.dto';
 import { WorkHistoryItemDto } from './work-history-item.dto';
 
+export enum ProfileType {
+  CUSTOM = 'CUSTOM',
+  UPWORK_IMPORT = 'UPWORK_IMPORT'
+}
+
 export class CreateProfileDto {
-  @IsString()
-  userId!: string;
+  @IsEnum(ProfileType)
+  @IsOptional()
+  type?: ProfileType;
 
   // Upwork source data
   @IsString()

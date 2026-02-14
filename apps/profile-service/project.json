@@ -4,6 +4,13 @@
   "sourceRoot": "apps/profile-service/src",
   "projectType": "application",
   "targets": {
+    "serve-dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project tsconfig.app.json -r dotenv/config -r tsconfig-paths/register src/main.ts",
+        "cwd": "apps/profile-service"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "options": {
@@ -32,7 +39,9 @@
     "copy-workspace-modules": {
       "dependsOn": ["build"],
       "cache": true,
-      "outputs": ["{workspaceRoot}/dist/apps/profile-service/workspace_modules"],
+      "outputs": [
+        "{workspaceRoot}/dist/apps/profile-service/workspace_modules"
+      ],
       "executor": "@nx/js:copy-workspace-modules",
       "options": {
         "buildTarget": "build"
@@ -58,13 +67,6 @@
         "production": {
           "buildTarget": "profile-service:build:production"
         }
-      }
-    },
-    "serve-dev": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "ts-node --project tsconfig.app.json -r dotenv/config -r tsconfig-paths/register src/main.ts",
-        "cwd": "apps/profile-service"
       }
     }
   },

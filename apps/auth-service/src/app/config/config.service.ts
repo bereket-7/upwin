@@ -31,6 +31,9 @@ export class ConfigService {
       }
     }
 
+    // Optional vars with defaults
+    config['API_URL'] = process.env.API_URL || 'http://localhost:3008/api';
+
     if (missing.length > 0) {
       throw new Error(
         `Missing required environment variables: ${missing.join(', ')}`
@@ -70,6 +73,10 @@ export class ConfigService {
 
   getCallbackUrl(): string {
     return this.get('CALLBACK_URL');
+  }
+
+  getApiUrl(): string {
+    return this.get('API_URL');
   }
 
   getSmtpHost(): string {
