@@ -4,9 +4,6 @@ import { PortfolioItemDto } from './portfolio-item.dto';
 import { WorkHistoryItemDto } from './work-history-item.dto';
 
 export class CreateProfileDto {
-  @IsString()
-  userId!: string;
-
   // Upwork source data
   @IsString()
   @IsOptional()

@@ -1,22 +1,15 @@
 {
-  "name": "profile-service",
+  "name": "proposal-service",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "apps/profile-service/src",
+  "sourceRoot": "apps/proposal-service/src",
   "projectType": "application",
   "targets": {
-    "serve-dev": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "ts-node --project tsconfig.app.json -r dotenv/config -r tsconfig-paths/register src/main.ts",
-        "cwd": "apps/profile-service"
-      }
-    },
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "command": "webpack-cli build",
         "args": ["--node-env=production"],
-        "cwd": "apps/profile-service"
+        "cwd": "apps/proposal-service"
       },
       "configurations": {
         "development": {
@@ -29,8 +22,8 @@
       "cache": true,
       "executor": "@nx/js:prune-lockfile",
       "outputs": [
-        "{workspaceRoot}/dist/apps/profile-service/package.json",
-        "{workspaceRoot}/dist/apps/profile-service/package-lock.json"
+        "{workspaceRoot}/dist/apps/proposal-service/package.json",
+        "{workspaceRoot}/dist/apps/proposal-service/package-lock.json"
       ],
       "options": {
         "buildTarget": "build"
@@ -40,7 +33,7 @@
       "dependsOn": ["build"],
       "cache": true,
       "outputs": [
-        "{workspaceRoot}/dist/apps/profile-service/workspace_modules"
+        "{workspaceRoot}/dist/apps/proposal-service/workspace_modules"
       ],
       "executor": "@nx/js:copy-workspace-modules",
       "options": {
@@ -57,16 +50,23 @@
       "defaultConfiguration": "development",
       "dependsOn": ["build"],
       "options": {
-        "buildTarget": "profile-service:build",
+        "buildTarget": "proposal-service:build",
         "runBuildTargetDependencies": false
       },
       "configurations": {
         "development": {
-          "buildTarget": "profile-service:build:development"
+          "buildTarget": "proposal-service:build:development"
         },
         "production": {
-          "buildTarget": "profile-service:build:production"
+          "buildTarget": "proposal-service:build:production"
         }
+      }
+    },
+    "serve-dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ts-node --project tsconfig.app.json -r dotenv/config -r tsconfig-paths/register src/main.ts",
+        "cwd": "apps/proposal-service"
       }
     }
   },
