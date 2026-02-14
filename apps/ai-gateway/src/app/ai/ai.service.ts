@@ -18,13 +18,13 @@ export class AiService {
     private readonly proposalClient: ProposalClientService,
   ) {}
 
-  async generateProposal(dto: GenerateProposalDto): Promise<ProposalResponseDto> {
+  async generateProposal(dto: GenerateProposalDto, authorization: string): Promise<ProposalResponseDto> {
     const { profileId, jobDescription, userId, jobUrl, jobTitle, jobSource } = dto;
 
     try {
       // Step 1: Fetch profile data from profile-service
       this.logger.log(`Starting proposal generation for profile: ${profileId}`);
-      const profile = await this.profileClient.getProfile(profileId);
+      const profile = await this.profileClient.getProfile(profileId, authorization);
 
       // Step 2: Retrieve RAG context (Phase 2)
       this.logger.log('Retrieving RAG context from Qdrant');

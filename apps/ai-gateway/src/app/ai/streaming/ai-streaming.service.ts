@@ -20,13 +20,13 @@ export class AiStreamingService {
     private readonly proposalClient: ProposalClientService,
   ) {}
 
-  async streamProposal(dto: StreamProposalDto, response: Response): Promise<void> {
+  async streamProposal(dto: StreamProposalDto, authorization: string, response: Response): Promise<void> {
     const { profileId, jobDescription, tone, style, userId, jobUrl, jobTitle, jobSource } = dto;
 
     try {
       // Step 1: Fetch profile data
       this.logger.log(`Starting streaming proposal for profile: ${profileId}`);
-      const profile = await this.profileClient.getProfile(profileId);
+      const profile = await this.profileClient.getProfile(profileId, authorization);
 
       // Apply overrides if provided
       const enhancedProfile = this.applyOverrides(profile, tone, style);
