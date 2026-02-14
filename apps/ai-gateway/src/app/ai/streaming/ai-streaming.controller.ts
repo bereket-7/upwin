@@ -1,9 +1,11 @@
-import { Controller, Post, Body, Res, Req, Logger } from '@nestjs/common';
+import { Controller, Post, Body, Res, Req, Logger, UseGuards, Headers } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import type { Request, Response } from 'express';
 import { AiStreamingService } from './ai-streaming.service';
 import { StreamProposalDto } from '../dto/stream-proposal.dto';
 
 @Controller('ai/proposals')
+@UseGuards(AuthGuard('jwt'))
 export class AiStreamingController {
   private readonly logger = new Logger(AiStreamingController.name);
 
@@ -12,6 +14,7 @@ export class AiStreamingController {
   @Post('stream')
   async streamProposal(
     @Body() dto: StreamProposalDto,
+    @Headers('authorization') authorization: string,
     @Req() request: Request,
     @Res() response: Response,
   ): Promise<void> {
@@ -38,7 +41,7 @@ export class AiStreamingController {
 
     try {
       // Start streaming
-      await this.streamingService.streamProposal(dto, response);
+      await this.streamingService.streamProposal(dto, authorization, response);
     } catch (error) {
       this.logger.error('Streaming error:', error);
       
