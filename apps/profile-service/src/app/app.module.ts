@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { SharedConfigModule, SharedAuthModule } from '@org/shared';
+import { ConfigModule } from './config/config.module';
+import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfileModule } from './profile/profile.module';
 import { HealthModule } from './health/health.module';
@@ -8,8 +9,8 @@ import { AppService } from './app.service';
 
 @Module({
   imports: [
-    SharedConfigModule,
-    SharedAuthModule,
+    ConfigModule,
+    AuthModule,
     PrismaModule,
     ProfileModule,
     HealthModule,

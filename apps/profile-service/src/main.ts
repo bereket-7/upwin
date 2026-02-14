@@ -6,13 +6,13 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
-import { SharedConfigService } from '@org/shared';
+import { ConfigService } from './app/config/config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   // Get config service
-  const configService = app.get(SharedConfigService);
+  const configService = app.get(ConfigService);
   
   // Global validation pipe
   app.useGlobalPipes(
@@ -27,14 +27,14 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
   
-  // CORS
+  // CORS - allow all for development
   app.enableCors({
-    origin: configService.allowedOrigins,
+    origin: '*',
     credentials: true,
   });
   
   // Start server
-  const port = configService.port;
+  const port = configService.getPort();
   await app.listen(port);
   
   Logger.log(
