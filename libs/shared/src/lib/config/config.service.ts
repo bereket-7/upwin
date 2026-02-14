@@ -46,8 +46,11 @@ export class SharedConfigService {
   }
 
   // CORS Configuration
-  get allowedOrigins(): string[] {
+  get allowedOrigins(): string[] | string {
     const origins = this.get('ALLOWED_ORIGINS');
+    if (origins === '*') {
+      return '*'; // Allow all origins
+    }
     return origins ? origins.split(',') : ['http://localhost:3000'];
   }
 }
