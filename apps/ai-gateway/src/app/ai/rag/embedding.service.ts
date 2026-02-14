@@ -11,10 +11,10 @@ export class EmbeddingService {
     try {
       this.logger.log('Generating embedding for text');
 
-      const model = this.geminiConfig.getModel();
+      const embeddingModel = this.geminiConfig.getEmbeddingModel();
 
       // Use Gemini's embedding model
-      const result = await model.embedContent(text);
+      const result = await embeddingModel.embedContent(text);
 
       if (!result.embedding || !result.embedding.values) {
         throw new Error('Failed to generate embedding');

@@ -6,7 +6,8 @@ import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 export class GeminiConfig {
   private readonly logger = new Logger(GeminiConfig.name);
   private readonly genAI: GoogleGenerativeAI;
-  private readonly model: GenerativeModel;
+  private readonly generationModel: GenerativeModel;
+  private readonly embeddingModel: GenerativeModel;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
@@ -18,9 +19,9 @@ export class GeminiConfig {
 
     this.genAI = new GoogleGenerativeAI(apiKey);
     
-    // Initialize Gemini 1.5 Pro model with optimal settings for proposal generation
-    this.model = this.genAI.getGenerativeModel({
-      model: 'gemini-1.5-pro',
+    // Initialize Gemini 2.5 Flash for text generation
+    this.generationModel = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.7,
         topP: 0.95,
@@ -29,10 +30,19 @@ export class GeminiConfig {
       },
     });
 
-    this.logger.log('Gemini 1.5 Pro initialized successfully');
+    // Initialize embedding model
+    this.embeddingModel = this.genAI.getGenerativeModel({
+      model: 'gemini-embedding-001',
+    });
+
+    this.logger.log('Gemini models initialized successfully');
   }
 
   getModel(): GenerativeModel {
-    return this.model;
+    return this.generationModel;
+  }
+
+  getEmbeddingModel(): GenerativeModel {
+    return this.embeddingModel;
   }
 }
