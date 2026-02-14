@@ -6,6 +6,7 @@ import { GeminiConfig } from '../config/gemini.config';
 import { RagService } from '../rag/rag.service';
 import { StreamProposalDto } from '../dto/stream-proposal.dto';
 import { Profile } from '../interfaces/profile.interface';
+import { ProposalClientService } from '../../proposal-client/proposal-client.service';
 
 @Injectable()
 export class AiStreamingService {
@@ -16,10 +17,11 @@ export class AiStreamingService {
     private readonly promptBuilder: PromptBuilder,
     private readonly geminiConfig: GeminiConfig,
     private readonly ragService: RagService,
+    private readonly proposalClient: ProposalClientService,
   ) {}
 
   async streamProposal(dto: StreamProposalDto, response: Response): Promise<void> {
-    const { profileId, jobDescription, tone, style } = dto;
+    const { profileId, jobDescription, tone, style, userId, jobUrl, jobTitle, jobSource } = dto;
 
     try {
       // Step 1: Fetch profile data
@@ -49,29 +51,51 @@ export class AiStreamingService {
 
       const fullPrompt = `${system}\n\n${user}`;
 
-      // Step 4: Stream from Gemini
+      // Step 4: Stream from Gemini and accumulate content
       this.logger.log('Starting Gemini streaming');
-      await this.streamFromGemini(fullPrompt, response);
+      const fullContent = await this.streamFromGemini(fullPrompt, response);
 
-      this.logger.log('Streaming completed successfully');
+      // Step 5: Save to proposal-service after streaming completes
+      this.logger.log('Streaming completed, saving proposal');
+      await this.saveStreamedProposal(
+        userId,
+        profileId,
+        jobSource || 'upwork',
+        jobUrl,
+        jobTitle,
+        jobDescription,
+        fullContent,
+        {
+          tone: enhancedProfile.tone,
+          style: enhancedProfile.writingStyle,
+          ragUsed: ragContext.totalRetrieved > 0,
+          streamingUsed: true,
+          aiModel: 'gemini-1.5-pro',
+        },
+        response,
+      );
+
+      this.logger.log('Streaming and save completed successfully');
     } catch (error) {
       this.logger.error('Error in streaming proposal:', error);
       this.sendError(response, error);
     }
   }
 
-  private async streamFromGemini(prompt: string, response: Response): Promise<void> {
+  private async streamFromGemini(prompt: string, response: Response): Promise<string> {
     try {
       const model = this.geminiConfig.getModel();
+      let fullContent = '';
 
       // Generate content with streaming
       const result = await model.generateContentStream(prompt);
 
-      // Stream chunks to client
+      // Stream chunks to client and accumulate
       for await (const chunk of result.stream) {
         const chunkText = chunk.text();
         
         if (chunkText) {
+          fullContent += chunkText;
           // Send SSE message
           response.write(`data: ${chunkText}\n\n`);
         }
@@ -80,10 +104,61 @@ export class AiStreamingService {
       // Send completion event
       response.write(`event: done\n`);
       response.write(`data: [DONE]\n\n`);
-      response.end();
+
+      return fullContent;
     } catch (error) {
       this.logger.error('Error streaming from Gemini:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Save streamed proposal to proposal-service
+   * Sends save_success or save_error events
+   */
+  private async saveStreamedProposal(
+    userId: string,
+    profileId: string,
+    jobSource: string,
+    jobUrl: string | undefined,
+    jobTitle: string | undefined,
+    jobDescription: string,
+    content: string,
+    promptMeta: any,
+    response: Response,
+  ): Promise<void> {
+    try {
+      const result = await this.proposalClient.saveProposal({
+        userId,
+        profileId,
+        jobSource,
+        jobUrl,
+        jobTitle,
+        jobDescription,
+        content,
+        promptMeta,
+      });
+
+      if (result) {
+        // Send success event with proposal ID
+        response.write(`event: saved\n`);
+        response.write(`data: ${JSON.stringify({ proposalId: result.id, version: result.currentVersion })}\n\n`);
+        this.logger.log(`Proposal saved: ${result.id}`);
+      } else {
+        // Save failed but don't break the stream
+        response.write(`event: save_error\n`);
+        response.write(`data: Failed to save proposal\n\n`);
+        this.logger.warn('Proposal save failed');
+      }
+    } catch (error) {
+      // Send error event but don't throw
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      response.write(`event: save_error\n`);
+      response.write(`data: ${errorMessage}\n\n`);
+      this.logger.error('Error saving streamed proposal:', error);
+    } finally {
+      // Always end the response
+      response.end();
     }
   }
 
