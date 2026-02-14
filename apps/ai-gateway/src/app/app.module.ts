@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AiModule } from './ai/ai.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { AiModule } from './ai/ai.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    AuthModule,
     AiModule,
   ],
   controllers: [AppController],
