@@ -4,6 +4,7 @@ import { PromptBuilder } from './prompt.builder';
 import { GeminiConfig } from './config/gemini.config';
 import { RagService } from './rag/rag.service';
 import { GenerateProposalDto, ProposalResponseDto } from './dto/generate-proposal.dto';
+import { ProposalClientService } from '../proposal-client/proposal-client.service';
 
 @Injectable()
 export class AiService {
@@ -14,15 +15,16 @@ export class AiService {
     private readonly promptBuilder: PromptBuilder,
     private readonly geminiConfig: GeminiConfig,
     private readonly ragService: RagService,
+    private readonly proposalClient: ProposalClientService,
   ) {}
 
-  async generateProposal(dto: GenerateProposalDto): Promise<ProposalResponseDto> {
-    const { profileId, jobDescription } = dto;
+  async generateProposal(dto: GenerateProposalDto, authorization: string): Promise<ProposalResponseDto> {
+    const { profileId, jobDescription, userId, jobUrl, jobTitle, jobSource } = dto;
 
     try {
       // Step 1: Fetch profile data from profile-service
       this.logger.log(`Starting proposal generation for profile: ${profileId}`);
-      const profile = await this.profileClient.getProfile(profileId);
+      const profile = await this.profileClient.getProfile(profileId, authorization);
 
       // Step 2: Retrieve RAG context (Phase 2)
       this.logger.log('Retrieving RAG context from Qdrant');
@@ -40,8 +42,8 @@ export class AiService {
       this.logger.log('Building prompt with RAG context');
       const { system, user } = this.promptBuilder.buildPrompt(profile, jobDescription, ragContext);
 
-      // Step 4: Call Gemini 1.5 API
-      this.logger.log('Calling Gemini 1.5 API');
+      // Step 4: Call Gemini 2.5 Flash API
+      this.logger.log("Calling Gemini 2.5 Flash API");
       const model = this.geminiConfig.getModel();
 
       // Combine system and user prompts for Gemini
@@ -62,7 +64,26 @@ export class AiService {
         `Successfully generated proposal (${proposal.length} characters) with RAG enhancement`
       );
 
-      // Step 5: Return generated proposal
+      // Step 5: Auto-save to proposal-service (non-blocking)
+      this.saveProposalAsync(
+        userId,
+        profileId,
+        jobSource || 'upwork',
+        jobUrl,
+        jobTitle,
+        jobDescription,
+        proposal.trim(),
+        {
+          tone: profile.tone,
+          style: profile.writingStyle,
+          ragUsed: ragContext.totalRetrieved > 0,
+          streamingUsed: false,
+          aiModel: 'gemini-2.5-flash',
+        },
+        authorization,
+      );
+
+      // Step 6: Return generated proposal immediately
       return {
         proposal: proposal.trim(),
       };
@@ -96,5 +117,37 @@ export class AiService {
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+  }
+
+  /**
+   * Save proposal asynchronously - does not block response
+   */
+  private saveProposalAsync(
+    userId: string,
+    profileId: string,
+    jobSource: string,
+    jobUrl: string | undefined,
+    jobTitle: string | undefined,
+    jobDescription: string,
+    content: string,
+    promptMeta: any,
+    authorization: string,
+  ): void {
+    // Fire and forget - don't await
+    this.proposalClient
+      .saveProposal({
+        userId,
+        profileId,
+        jobSource,
+        jobUrl,
+        jobTitle,
+        jobDescription,
+        content,
+        promptMeta,
+      }, authorization)
+      .catch((error) => {
+        // Already logged in ProposalClientService
+        this.logger.warn('Proposal save failed but generation succeeded');
+      });
   }
 }

@@ -8,9 +8,10 @@ import { GeminiConfig } from './config/gemini.config';
 import { RagModule } from './rag/rag.module';
 import { AiStreamingController } from './streaming/ai-streaming.controller';
 import { AiStreamingService } from './streaming/ai-streaming.service';
+import { ProposalClientModule } from '../proposal-client/proposal-client.module';
 
 @Module({
-  imports: [ConfigModule, RagModule],
+  imports: [ConfigModule, RagModule, ProposalClientModule],
   controllers: [AiController, AiStreamingController],
   providers: [
     AiService,

@@ -1,6 +1,10 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class GenerateProposalDto {
+  @IsString()
+  @IsNotEmpty()
+  userId!: string;
+
   @IsString()
   @IsNotEmpty()
   profileId!: string;
@@ -8,6 +12,18 @@ export class GenerateProposalDto {
   @IsString()
   @IsNotEmpty()
   jobDescription!: string;
+
+  @IsString()
+  @IsOptional()
+  jobSource?: string;
+
+  @IsString()
+  @IsOptional()
+  jobUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  jobTitle?: string;
 }
 
 export class ProposalResponseDto {

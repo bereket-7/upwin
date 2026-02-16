@@ -11,15 +11,22 @@ export class ProfileClient {
     this.profileServiceUrl = this.configService.get<string>('PROFILE_SERVICE_URL') || 'http://localhost:3009/api';
   }
 
-  async getProfile(profileId: string): Promise<Profile> {
+  async getProfile(profileId: string, authorization?: string): Promise<Profile> {
     try {
       this.logger.log(`Fetching profile: ${profileId} from ${this.profileServiceUrl}`);
       
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if provided
+      if (authorization) {
+        headers['Authorization'] = authorization;
+      }
+
       const response = await fetch(`${this.profileServiceUrl}/profiles/${profileId}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       if (!response.ok) {
