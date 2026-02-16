@@ -1,14 +1,6 @@
-import { IsString, IsOptional, IsArray, IsNumber, IsInt, Min, IsDate, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PortfolioItemDto } from './portfolio-item.dto';
-import { WorkHistoryItemDto } from './work-history-item.dto';
+import { IsString, IsOptional, IsNumber, IsInt, Min } from 'class-validator';
 
 export class CreateProfileDto {
-  // Upwork source data
-  @IsString()
-  @IsOptional()
-  upworkId?: string;
-
   @IsString()
   @IsOptional()
   name?: string;
@@ -29,19 +21,13 @@ export class CreateProfileDto {
   @IsOptional()
   city?: string;
 
-  // Profile content
   @IsString()
   @IsOptional()
   title?: string;
 
   @IsString()
   @IsOptional()
-  description?: string;
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  skills?: string[];
+  bio?: string;
 
   @IsNumber()
   @IsOptional()
@@ -52,47 +38,11 @@ export class CreateProfileDto {
   @IsOptional()
   experienceYrs?: number;
 
-  // Upwork stats
   @IsString()
   @IsOptional()
-  totalEarnings?: string;
-
-  @IsString()
-  @IsOptional()
-  totalJobs?: string;
+  defaultTone?: string;
 
   @IsString()
   @IsOptional()
-  totalHours?: string;
-
-  @IsDate()
-  @Type(() => Date)
-  @IsOptional()
-  syncedAt?: Date;
-
-  // AI customization
-  @IsString()
-  @IsOptional()
-  tone?: string;
-
-  @IsString()
-  @IsOptional()
-  writingStyle?: string;
-
-  @IsString()
-  @IsOptional()
-  rawText?: string;
-
-  // Nested data
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PortfolioItemDto)
-  @IsOptional()
-  portfolio?: PortfolioItemDto[];
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => WorkHistoryItemDto)
-  @IsOptional()
-  workHistory?: WorkHistoryItemDto[];
+  defaultWritingStyle?: string;
 }

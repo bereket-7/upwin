@@ -10,84 +10,111 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ProfileType {
+enum PortfolioType {
   CUSTOM
   UPWORK_IMPORT
 }
 
 model Profile {
   id            String   @id @default(uuid())
-  userId        String   // References Auth Service User ID (removed @unique to allow multiple profiles)
-  type          ProfileType @default(CUSTOM)
+  userId        String   @unique // One profile per user
   
-  // Upwork-specific fields
-  upworkId      String?  @unique
+  // Basic info
   name          String?
   avatar        String?
   location      String?
   country       String?
   city          String?
   
-  // Common fields
+  // Professional info
   title         String?
-  description   String?
-  skills        String[]
+  bio           String?
   hourlyRate    Float?
   experienceYrs Int?
   
-  // Upwork stats
-  totalEarnings String?
-  totalJobs     String?
-  totalHours    String?
-  syncedAt      DateTime?
-  
-  // AI preferences
-  tone          String?
-  writingStyle  String?
-  rawText       String?
+  // AI preferences (default for all portfolios)
+  defaultTone          String?
+  defaultWritingStyle  String?
 
   // Relations
-  portfolio     PortfolioItem[]
-  workHistory   WorkHistoryItem[]
+  portfolios    Portfolio[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([userId])
+}
+
+model Portfolio {
+  id            String        @id @default(uuid())
+  profileId     String
+  profile       Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  type          PortfolioType @default(CUSTOM)
+  name          String        // e.g., "Full Stack Developer", "My Upwork Portfolio"
+  
+  // Upwork-specific
+  upworkId      String?       @unique
+  syncedAt      DateTime?
+  
+  // Portfolio-specific content
+  description   String?
+  skills        String[]
+  
+  // Upwork stats (only for UPWORK_IMPORT)
+  totalEarnings String?
+  totalJobs     String?
+  totalHours    String?
+  
+  // AI preferences (overrides profile defaults)
+  tone          String?
+  writingStyle  String?
+  
+  // Relations
+  portfolioItems PortfolioItem[]
+  workHistory    WorkHistoryItem[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([profileId])
   @@index([upworkId])
+  @@index([type])
 }
 
 model PortfolioItem {
-  id          String   @id @default(uuid())
-  profileId   String
-  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   
   title       String
   image       String?
   description String?
   role        String?
   skills      String[]
+  url         String?
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([profileId])
+  @@index([portfolioId])
 }
 
 model WorkHistoryItem {
-  id          String   @id @default(uuid())
-  profileId   String
-  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid())
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
   
   title       String
+  company     String?
   dates       String?
   totalEarned String?
   hours       String?
   hourlyRate  String?
-  rawStats    String?
+  description String?
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([profileId])
+  @@index([portfolioId])
 }

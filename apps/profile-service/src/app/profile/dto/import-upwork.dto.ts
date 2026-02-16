@@ -1,15 +1,13 @@
-import { IsString, IsOptional, IsArray, IsNumber, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsNumber, IsInt, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PortfolioItemDto } from './portfolio-item.dto';
 import { WorkHistoryItemDto } from './work-history-item.dto';
 
 export class ImportUpworkDto {
+  // Profile fields
   @IsString()
   @IsOptional()
-  id?: string;
-
-  @IsString()
-  name!: string;
+  profileName?: string;
 
   @IsString()
   @IsOptional()
@@ -31,6 +29,22 @@ export class ImportUpworkDto {
   @IsOptional()
   title?: string;
 
+  @IsNumber()
+  @IsOptional()
+  hourlyRate?: number;
+
+  @IsInt()
+  @IsOptional()
+  experienceYrs?: number;
+
+  // Portfolio fields
+  @IsString()
+  @IsOptional()
+  upworkId?: string;
+
+  @IsString()
+  portfolioName!: string;
+
   @IsString()
   @IsOptional()
   description?: string;
@@ -39,10 +53,6 @@ export class ImportUpworkDto {
   @IsString({ each: true })
   @IsOptional()
   skills?: string[];
-
-  @IsNumber()
-  @IsOptional()
-  hourlyRate?: number;
 
   @IsString()
   @IsOptional()
@@ -56,15 +66,11 @@ export class ImportUpworkDto {
   @IsOptional()
   totalHours?: string;
 
-  @IsString()
-  @IsOptional()
-  syncedAt?: string;
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PortfolioItemDto)
   @IsOptional()
-  portfolio?: PortfolioItemDto[];
+  portfolioItems?: PortfolioItemDto[];
 
   @IsArray()
   @ValidateNested({ each: true })

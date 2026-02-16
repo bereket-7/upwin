@@ -1,16 +1,22 @@
 export interface Profile {
   id: string;
-  userId: string;
+  name?: string;
   title?: string;
-  description?: string;
+  bio?: string;
   skills: string[];
   hourlyRate?: number;
   experienceYrs?: number;
+  location?: string;
+  country?: string;
+  city?: string;
+  avatar?: string;
   tone?: string;
   writingStyle?: string;
-  rawText?: string;
   portfolio?: PortfolioItem[];
   workHistory?: WorkHistoryItem[];
+  totalEarnings?: string;
+  totalJobs?: string;
+  totalHours?: string;
 }
 
 export interface PortfolioItem {
@@ -19,12 +25,16 @@ export interface PortfolioItem {
   description?: string;
   role?: string;
   skills: string[];
+  url?: string;
 }
 
 export interface WorkHistoryItem {
   id: string;
   title: string;
+  company?: string;
   dates?: string;
   totalEarned?: string;
   hours?: string;
+  hourlyRate?: string;
+  description?: string;
 }
