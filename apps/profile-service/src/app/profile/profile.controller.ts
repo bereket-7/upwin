@@ -12,71 +12,33 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '@org/shared';
 import { ProfileService } from './profile.service';
-import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CreatePortfolioDto } from './dto/create-portfolio.dto';
+import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { PaginationDto } from './dto/pagination.dto';
 import { ImportUpworkDto } from './dto/import-upwork.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Controller('profiles')
+@Controller('profile')
 @UseGuards(JwtAuthGuard)
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  @Post()
-  @Throttle({ short: { limit: 5, ttl: 1000 } })
-  create(
-    @CurrentUser('userId') userId: string,
-    @Body() createProfileDto: CreateProfileDto
-  ) {
-    return this.profileService.create({ ...createProfileDto, userId });
-  }
+  // ==================== PROFILE ENDPOINTS ====================
 
   @Get()
   @Throttle({ long: { limit: 100, ttl: 60000 } })
-  findAll(
-    @CurrentUser('userId') userId: string,
-    @Query() pagination: PaginationDto
-  ) {
-    return this.profileService.findAllForUser(userId, pagination);
+  getProfile(@CurrentUser('userId') userId: string) {
+    return this.profileService.getOrCreateProfile(userId);
   }
 
-  @Get(':id')
-  @Throttle({ medium: { limit: 50, ttl: 10000 } })
-  findOne(
-    @Param('id') id: string,
-    @CurrentUser('userId') userId: string
-  ) {
-    return this.profileService.findOne(id, userId);
-  }
-
-  @Patch(':id/sync')
+  @Patch()
   @Throttle({ short: { limit: 10, ttl: 1000 } })
-  updateUpworkProfile(
-    @Param('id') id: string,
+  updateProfile(
     @CurrentUser('userId') userId: string,
     @Body() updateProfileDto: UpdateProfileDto
   ) {
-    return this.profileService.updateUpworkProfile(id, userId, updateProfileDto);
-  }
-
-  @Patch(':id/custom')
-  @Throttle({ short: { limit: 10, ttl: 1000 } })
-  updateCustomProfile(
-    @Param('id') id: string,
-    @CurrentUser('userId') userId: string,
-    @Body() updateProfileDto: UpdateProfileDto
-  ) {
-    return this.profileService.updateCustomProfile(id, userId, updateProfileDto);
-  }
-
-  @Delete(':id')
-  @Throttle({ short: { limit: 5, ttl: 1000 } })
-  remove(
-    @Param('id') id: string,
-    @CurrentUser('userId') userId: string
-  ) {
-    return this.profileService.remove(id, userId);
+    return this.profileService.updateProfile(userId, updateProfileDto);
   }
 
   @Post('import')
@@ -86,5 +48,72 @@ export class ProfileController {
     @Body() upworkData: ImportUpworkDto
   ) {
     return this.profileService.importFromUpwork(userId, upworkData);
+  }
+
+  @Post('sync')
+  @Throttle({ short: { limit: 5, ttl: 1000 } })
+  syncAllUpworkData(
+    @CurrentUser('userId') userId: string,
+    @Body() upworkData: ImportUpworkDto
+  ) {
+    return this.profileService.syncAllUpworkData(userId, upworkData);
+  }
+
+  // ==================== PORTFOLIO ENDPOINTS ====================
+
+  @Post('portfolios')
+  @Throttle({ short: { limit: 5, ttl: 1000 } })
+  createPortfolio(
+    @CurrentUser('userId') userId: string,
+    @Body() createPortfolioDto: CreatePortfolioDto
+  ) {
+    return this.profileService.createPortfolio(userId, createPortfolioDto);
+  }
+
+  @Get('portfolios')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getPortfolios(
+    @CurrentUser('userId') userId: string,
+    @Query() pagination: PaginationDto
+  ) {
+    return this.profileService.getPortfolios(userId, pagination);
+  }
+
+  @Get('portfolios/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getPortfolio(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getPortfolio(userId, id);
+  }
+
+  @Patch('portfolios/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updatePortfolio(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() updatePortfolioDto: UpdatePortfolioDto
+  ) {
+    return this.profileService.updatePortfolio(userId, id, updatePortfolioDto);
+  }
+
+  @Patch('portfolios/:id/sync')
+  @Throttle({ short: { limit: 5, ttl: 1000 } })
+  syncSingleUpworkPortfolio(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() upworkData: ImportUpworkDto
+  ) {
+    return this.profileService.syncUpworkPortfolio(userId, id, upworkData);
+  }
+
+  @Delete('portfolios/:id')
+  @Throttle({ short: { limit: 5, ttl: 1000 } })
+  deletePortfolio(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deletePortfolio(userId, id);
   }
 }
