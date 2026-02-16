@@ -60,12 +60,7 @@ Your goal is to sound like a skilled professional who genuinely understands the 
       workHistoryContext = `\n\nRECENT WORK:\n${workItems}`;
     }
 
-    // Include raw text if available (user's custom profile text)
-    const rawTextContext = profile.rawText 
-      ? `\n\nADDITIONAL CONTEXT:\n${profile.rawText}` 
-      : '';
-
-    const overview = profile.description || `I'm a ${title} with ${experience} specializing in ${skills}.`;
+    const overview = profile.bio || `I'm a ${title} with ${experience} specializing in ${skills}.`;
 
     // Build RAG context section
     let ragContextSection = '';
@@ -79,7 +74,7 @@ YOUR PROFILE (AUTHORITATIVE - USE THIS):
 Title: ${title}
 Overview: ${overview}
 Skills: ${skills}
-Experience: ${experience}${portfolioContext}${workHistoryContext}${rawTextContext}
+Experience: ${experience}${portfolioContext}${workHistoryContext}
 
 JOB DESCRIPTION (THE CLIENT'S NEEDS):
 ${jobDescription}
