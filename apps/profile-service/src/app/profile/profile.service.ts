@@ -318,7 +318,7 @@ export class ProfileService {
   }
 
   /**
-   * Update any portfolio (custom or Upwork)
+   * Update any portfolio
    */
   async updatePortfolio(userId: string, portfolioId: string, dto: UpdatePortfolioDto) {
     await this.getPortfolio(userId, portfolioId); // Verify ownership
