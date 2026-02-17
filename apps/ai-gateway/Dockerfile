@@ -4,11 +4,9 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy generated package.json from build output and install dependencies
 COPY apps/ai-gateway/dist/package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy the built application
 COPY apps/ai-gateway/dist/ ./dist/
