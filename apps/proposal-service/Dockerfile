@@ -5,7 +5,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy generated package.json from build output and install dependencies
-COPY apps/proposal-service/dist/package*.json ./
+COPY dist/apps/proposal-service/package*.json ./
 RUN npm install --omit=dev
 
 # Copy Prisma schema and generate client
@@ -14,7 +14,7 @@ COPY apps/proposal-service/prisma.config.ts ./
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copy built application code
-COPY apps/proposal-service/dist/ ./
+COPY dist/apps/proposal-service/ ./
 
 # Add non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
