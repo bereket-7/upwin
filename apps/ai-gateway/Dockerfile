@@ -5,14 +5,14 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package.json and package-lock.json
-COPY package*.json ./
+COPY apps/ai-gateway/dist/package*.json ./
 
 # Install dependencies
 RUN npm ci --only=production
 
 # Copy the built application
-COPY dist/ ./dist/
-COPY package.json ./
+COPY apps/ai-gateway/dist/ ./dist/
+COPY apps/ai-gateway/dist/package.json ./
 
 # Expose port 3007
 EXPOSE 3007
