@@ -4,12 +4,12 @@
   "private": true,
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "@nestjs/axios": "^3.0.0",
+    "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^11.0.0",
-    "@nestjs/jwt": "^10.2.0",
-    "@nestjs/passport": "^10.0.3",
+
+    "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@qdrant/js-client-rest": "^1.16.2",
     "@types/uuid": "^10.0.0",
