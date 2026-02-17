@@ -4,9 +4,9 @@
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy package.json and install dependencies
-COPY apps/proposal-service/package*.json ./
-RUN npm install --ignore-scripts
+# Copy generated package.json from build output and install dependencies
+COPY apps/proposal-service/dist/package*.json ./
+RUN npm install --omit=dev
 
 # Copy Prisma schema and generate client
 COPY apps/proposal-service/prisma ./prisma/

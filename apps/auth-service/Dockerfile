@@ -4,9 +4,9 @@
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy package.json from source and install ALL dependencies
-COPY apps/auth-service/package*.json ./
-RUN npm install --ignore-scripts
+# Copy generated package.json from build output and install dependencies
+COPY apps/auth-service/dist/package*.json ./
+RUN npm install --omit=dev
 
 # Copy the COMPILED shared library (not source)
 COPY libs/shared/dist ./node_modules/@org/shared/
