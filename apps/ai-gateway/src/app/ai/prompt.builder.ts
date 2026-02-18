@@ -251,10 +251,53 @@ Write the proposal now:`;
     profile: Profile, 
     jobDescription: string, 
     ragContext?: RagContext
-  ): { system: string; user: string } {
+  ): { 
+    system: string; 
+    user: string;
+    metadata: {
+      preferencesUsed: {
+        tone?: string;
+        writingStyle?: string;
+        length?: string;
+      };
+      portfoliosUsed: any[];
+      workHistoryUsed: any[];
+    };
+  } {
+    // Extract preferences
+    const tonePreference = profile.preferences?.find(p => p.category === 'TONE');
+    const stylePreference = profile.preferences?.find(p => p.category === 'WRITING_STYLE');
+    const lengthPreference = profile.preferences?.find(p => p.category === 'LENGTH');
+
+    // Filter relevant items
+    const relevantPortfolios = profile.portfolio && profile.portfolio.length > 0
+      ? this.filterRelevantPortfolios(profile.portfolio, jobDescription).slice(0, 3)
+      : [];
+
+    const relevantWork = profile.workHistory && profile.workHistory.length > 0
+      ? this.filterRelevantWorkHistory(profile.workHistory, jobDescription).slice(0, 3)
+      : [];
+
     return {
       system: this.buildSystemPrompt(profile),
       user: this.buildUserPrompt(profile, jobDescription, ragContext),
+      metadata: {
+        preferencesUsed: {
+          tone: tonePreference?.value || profile.tone || 'professional',
+          writingStyle: stylePreference?.value || profile.writingStyle || 'clear and concise',
+          length: lengthPreference?.value || 'medium',
+        },
+        portfoliosUsed: relevantPortfolios.map(p => ({
+          id: p.id,
+          title: p.title,
+          relevanceScore: p.relevanceScore,
+        })),
+        workHistoryUsed: relevantWork.map(w => ({
+          id: w.id,
+          title: w.title,
+          relevanceScore: w.relevanceScore,
+        })),
+      },
     };
   }
 }
