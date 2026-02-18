@@ -22,7 +22,6 @@ export class AiStreamingService {
 
   async streamProposal(dto: StreamProposalDto, authorization: string, response: Response): Promise<void> {
     const { profileId, jobDescription, tone, style, userId, jobId, jobUrl, jobTitle } = dto;
-    const jobSource = 'upwork'; // Always upwork
 
     try {
       // Step 1: Fetch profile data
@@ -62,7 +61,6 @@ export class AiStreamingService {
         userId,
         profileId,
         jobId,
-        jobSource,
         jobUrl,
         jobTitle,
         jobDescription,
@@ -123,7 +121,6 @@ export class AiStreamingService {
     userId: string,
     profileId: string,
     jobId: string | undefined,
-    jobSource: string,
     jobUrl: string | undefined,
     jobTitle: string | undefined,
     jobDescription: string,
@@ -137,7 +134,6 @@ export class AiStreamingService {
         userId,
         profileId,
         jobId,
-        jobSource,
         jobUrl,
         jobTitle,
         jobDescription,
