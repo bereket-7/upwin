@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum ProposalStatus {
@@ -21,7 +22,7 @@ model Proposal {
   profileId      String
   
   // Job details
-  jobSource      String            // "upwork", "freelancer", etc.
+  jobId          String?
   jobUrl         String?
   jobTitle       String?
   jobDescription String?           @db.Text
@@ -41,6 +42,7 @@ model Proposal {
 
   @@index([userId])
   @@index([profileId])
+  @@index([jobId])
   @@index([status])
   @@index([createdAt])
 }

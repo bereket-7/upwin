@@ -13,7 +13,7 @@ export class ProfileClient {
 
   async getProfile(profileId: string, authorization?: string): Promise<Profile> {
     try {
-      this.logger.log(`Fetching portfolio: ${profileId} from ${this.profileServiceUrl}`);
+      this.logger.log(`Fetching profile: ${profileId} from ${this.profileServiceUrl}`);
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -24,7 +24,7 @@ export class ProfileClient {
         headers['Authorization'] = authorization;
       }
 
-      const response = await fetch(`${this.profileServiceUrl}/profile/portfolios/${profileId}`, {
+      const response = await fetch(`${this.profileServiceUrl}/profile/${profileId}`, {
         method: 'GET',
         headers,
       });
@@ -32,27 +32,26 @@ export class ProfileClient {
       if (!response.ok) {
         if (response.status === 404) {
           throw new HttpException(
-            `Portfolio with ID ${profileId} not found`,
+            `Profile with ID ${profileId} not found`,
             HttpStatus.NOT_FOUND
           );
         }
         throw new HttpException(
-          `Failed to fetch portfolio: ${response.statusText}`,
+          `Failed to fetch profile: ${response.statusText}`,
           HttpStatus.BAD_GATEWAY
         );
       }
 
-      const portfolio = await response.json();
-      this.logger.log(`Successfully fetched portfolio: ${profileId}`);
+      const profile = await response.json();
+      this.logger.log(`Successfully fetched profile: ${profileId}`);
       
-      // Transform portfolio to match Profile interface expected by AI service
-      return this.transformPortfolioToProfile(portfolio);
+      return this.transformToProfile(profile);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
       
-      this.logger.error(`Error fetching portfolio ${profileId}:`, error);
+      this.logger.error(`Error fetching profile ${profileId}:`, error);
       throw new HttpException(
         'Failed to communicate with profile service',
         HttpStatus.SERVICE_UNAVAILABLE
@@ -60,26 +59,26 @@ export class ProfileClient {
     }
   }
 
-  private transformPortfolioToProfile(portfolio: any): Profile {
+  private transformToProfile(profile: any): Profile {
     return {
-      id: portfolio.id,
-      name: portfolio.profile?.name || 'Unknown',
-      title: portfolio.profile?.title || '',
-      bio: portfolio.description || portfolio.profile?.bio || '',
-      skills: portfolio.skills || [],
-      hourlyRate: portfolio.profile?.hourlyRate,
-      experienceYrs: portfolio.profile?.experienceYrs,
-      location: portfolio.profile?.location,
-      country: portfolio.profile?.country,
-      city: portfolio.profile?.city,
-      avatar: portfolio.profile?.avatar,
-      tone: portfolio.tone || portfolio.profile?.defaultTone || 'professional',
-      writingStyle: portfolio.writingStyle || portfolio.profile?.defaultWritingStyle || 'concise',
-      portfolio: portfolio.portfolioItems || [],
-      workHistory: portfolio.workHistory || [],
-      totalEarnings: portfolio.totalEarnings,
-      totalJobs: portfolio.totalJobs,
-      totalHours: portfolio.totalHours,
+      id: profile.id,
+      name: profile.name || 'Unknown',
+      title: profile.title || '',
+      bio: profile.bio || '',
+      skills: profile.skills || [],
+      hourlyRate: profile.hourlyRate,
+      experienceYrs: profile.experienceYrs,
+      location: profile.location,
+      country: profile.country,
+      city: profile.city,
+      avatar: profile.avatar,
+      tone: profile.defaultTone || 'professional',
+      writingStyle: profile.defaultWritingStyle || 'concise',
+      portfolio: profile.portfolioItems || [],
+      workHistory: profile.workHistory || [],
+      totalEarnings: profile.totalEarnings,
+      totalJobs: profile.totalJobs,
+      totalHours: profile.totalHours,
     };
   }
 }

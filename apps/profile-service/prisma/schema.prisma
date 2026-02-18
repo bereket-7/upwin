@@ -15,6 +15,12 @@ enum PortfolioType {
   UPWORK_IMPORT
 }
 
+enum PreferenceCategory {
+  TONE
+  WRITING_STYLE
+  LENGTH
+}
+
 model Profile {
   id            String   @id @default(uuid())
   userId        String   @unique // One profile per user
@@ -31,62 +37,35 @@ model Profile {
   bio           String?
   hourlyRate    Float?
   experienceYrs Int?
+  skills        String[]
   
-  // AI preferences (default for all portfolios)
-  defaultTone          String?
-  defaultWritingStyle  String?
+  // Upwork-specific
+  upworkId      String?   @unique
+  syncedAt      DateTime?
+  
+  // Upwork stats
+  totalEarnings String?
+  totalJobs     String?
+  totalHours    String?
 
   // Relations
-  portfolios    Portfolio[]
+  preferences       ProfilePreference[]
+  portfolioItems    PortfolioItem[]
+  workHistory       WorkHistoryItem[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([userId])
-}
-
-model Portfolio {
-  id            String        @id @default(uuid())
-  profileId     String
-  profile       Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  
-  type          PortfolioType @default(CUSTOM)
-  name          String        // e.g., "Full Stack Developer", "My Upwork Portfolio"
-  
-  // Upwork-specific
-  upworkId      String?       @unique
-  syncedAt      DateTime?
-  
-  // Portfolio-specific content
-  description   String?
-  skills        String[]
-  
-  // Upwork stats (only for UPWORK_IMPORT)
-  totalEarnings String?
-  totalJobs     String?
-  totalHours    String?
-  
-  // AI preferences (overrides profile defaults)
-  tone          String?
-  writingStyle  String?
-  
-  // Relations
-  portfolioItems PortfolioItem[]
-  workHistory    WorkHistoryItem[]
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([profileId])
   @@index([upworkId])
-  @@index([type])
 }
 
 model PortfolioItem {
-  id          String    @id @default(uuid())
-  portfolioId String
-  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  id          String        @id @default(uuid())
+  profileId   String
+  profile     Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
   
+  type        PortfolioType @default(CUSTOM)
   title       String
   image       String?
   description String?
@@ -97,13 +76,14 @@ model PortfolioItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([portfolioId])
+  @@index([profileId])
+  @@index([type])
 }
 
 model WorkHistoryItem {
   id          String    @id @default(uuid())
-  portfolioId String
-  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
   
   title       String
   company     String?
@@ -116,5 +96,40 @@ model WorkHistoryItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([portfolioId])
+  @@index([profileId])
+}
+
+model AIPreference {
+  id          String              @id @default(uuid())
+  category    PreferenceCategory
+  name        String              // "Professional", "Friendly", "Concise"
+  value       String              // Internal value used by AI
+  description String?             // Help text for users
+  isActive    Boolean             @default(true)
+  isDefault   Boolean             @default(false)
+  sortOrder   Int                 @default(0)
+  
+  // Many-to-many relation
+  profiles    ProfilePreference[]
+  
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  
+  @@unique([category, name])
+  @@index([category, isActive])
+}
+
+model ProfilePreference {
+  id            String        @id @default(uuid())
+  profileId     String
+  preferenceId  String
+  
+  profile       Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  preference    AIPreference  @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime      @default(now())
+  
+  @@unique([profileId, preferenceId])
+  @@index([profileId])
+  @@index([preferenceId])
 }

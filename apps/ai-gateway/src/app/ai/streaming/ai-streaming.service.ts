@@ -21,7 +21,7 @@ export class AiStreamingService {
   ) {}
 
   async streamProposal(dto: StreamProposalDto, authorization: string, response: Response): Promise<void> {
-    const { profileId, jobDescription, tone, style, userId, jobUrl, jobTitle, jobSource } = dto;
+    const { profileId, jobDescription, tone, style, userId, jobId, jobUrl, jobTitle } = dto;
 
     try {
       // Step 1: Fetch profile data
@@ -60,7 +60,7 @@ export class AiStreamingService {
       await this.saveStreamedProposal(
         userId,
         profileId,
-        jobSource || 'upwork',
+        jobId,
         jobUrl,
         jobTitle,
         jobDescription,
@@ -120,7 +120,7 @@ export class AiStreamingService {
   private async saveStreamedProposal(
     userId: string,
     profileId: string,
-    jobSource: string,
+    jobId: string | undefined,
     jobUrl: string | undefined,
     jobTitle: string | undefined,
     jobDescription: string,
@@ -133,7 +133,7 @@ export class AiStreamingService {
       const result = await this.proposalClient.saveProposal({
         userId,
         profileId,
-        jobSource,
+        jobId,
         jobUrl,
         jobTitle,
         jobDescription,

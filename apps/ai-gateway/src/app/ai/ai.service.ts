@@ -19,7 +19,7 @@ export class AiService {
   ) {}
 
   async generateProposal(dto: GenerateProposalDto, authorization: string): Promise<ProposalResponseDto> {
-    const { profileId, jobDescription, userId, jobUrl, jobTitle, jobSource } = dto;
+    const { profileId, jobDescription, userId, jobId, jobUrl, jobTitle } = dto;
 
     try {
       // Step 1: Fetch profile data from profile-service
@@ -68,7 +68,7 @@ export class AiService {
       this.saveProposalAsync(
         userId,
         profileId,
-        jobSource || 'upwork',
+        jobId,
         jobUrl,
         jobTitle,
         jobDescription,
@@ -125,7 +125,7 @@ export class AiService {
   private saveProposalAsync(
     userId: string,
     profileId: string,
-    jobSource: string,
+    jobId: string | undefined,
     jobUrl: string | undefined,
     jobTitle: string | undefined,
     jobDescription: string,
@@ -138,7 +138,7 @@ export class AiService {
       .saveProposal({
         userId,
         profileId,
-        jobSource,
+        jobId,
         jobUrl,
         jobTitle,
         jobDescription,

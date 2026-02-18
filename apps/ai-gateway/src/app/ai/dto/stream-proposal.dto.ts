@@ -15,7 +15,7 @@ export class StreamProposalDto {
 
   @IsString()
   @IsOptional()
-  jobSource?: string;
+  jobId?: string;
 
   @IsString()
   @IsOptional()

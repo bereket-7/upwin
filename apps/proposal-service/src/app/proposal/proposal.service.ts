@@ -21,7 +21,7 @@ export class ProposalService {
       data: {
         userId: dto.userId,
         profileId: dto.profileId,
-        jobSource: dto.jobSource,
+        jobId: dto.jobId,
         jobUrl: dto.jobUrl,
         jobTitle: dto.jobTitle,
         jobDescription: dto.jobDescription,
@@ -136,13 +136,14 @@ export class ProposalService {
    * List proposals with filters and pagination
    */
   async listProposals(query: QueryProposalsDto) {
-    const { userId, profileId, status, page = 1, limit = 10 } = query;
+    const { userId, profileId, jobId, status, page = 1, limit = 10 } = query;
 
     this.logger.log(`Listing proposals with filters: ${JSON.stringify(query)}`);
 
     const where: any = {};
     if (userId) where.userId = userId;
     if (profileId) where.profileId = profileId;
+    if (jobId) where.jobId = jobId;
     if (status) where.status = status;
 
     const skip = (page - 1) * limit;

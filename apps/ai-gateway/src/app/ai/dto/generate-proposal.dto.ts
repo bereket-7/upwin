@@ -15,7 +15,7 @@ export class GenerateProposalDto {
 
   @IsString()
   @IsOptional()
-  jobSource?: string;
+  jobId?: string;
 
   @IsString()
   @IsOptional()

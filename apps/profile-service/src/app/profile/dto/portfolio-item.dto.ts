@@ -20,4 +20,8 @@ export class PortfolioItemDto {
   @IsString({ each: true })
   @IsOptional()
   skills?: string[];
+
+  @IsString()
+  @IsOptional()
+  url?: string;
 }

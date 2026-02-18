@@ -7,7 +7,7 @@ import { AxiosError } from 'axios';
 export interface CreateProposalDto {
   userId: string;
   profileId: string;
-  jobSource: string;
+  jobId?: string;
   jobUrl?: string;
   jobTitle?: string;
   jobDescription?: string;

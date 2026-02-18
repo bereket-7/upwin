@@ -10,8 +10,8 @@ export class CreateProposalDto {
   profileId!: string;
 
   @IsString()
-  @IsNotEmpty()
-  jobSource!: string;
+  @IsOptional()
+  jobId?: string;
 
   @IsString()
   @IsOptional()
