@@ -20,13 +20,13 @@ export class ProfileService {
     let profile = await this.prisma.profile.findUnique({
       where: { userId },
       include: {
-        portfolios: {
+        preferences: {
           include: {
-            portfolioItems: true,
-            workHistory: true,
+            preference: true,
           },
-          orderBy: { createdAt: 'desc' },
         },
+        portfolioItems: true,
+        workHistory: true,
       },
     });
 
@@ -35,17 +35,22 @@ export class ProfileService {
       profile = await this.prisma.profile.create({
         data: { userId },
         include: {
-          portfolios: {
+          preferences: {
             include: {
-              portfolioItems: true,
-              workHistory: true,
+              preference: true,
             },
           },
+          portfolioItems: true,
+          workHistory: true,
         },
       });
     }
 
-    return profile;
+    // Transform to include preferences array
+    return {
+      ...profile,
+      selectedPreferences: profile.preferences.map(pp => pp.preference),
+    };
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
@@ -55,22 +60,23 @@ export class ProfileService {
       where: { id: profile.id },
       data: dto,
       include: {
-        portfolios: {
+        preferences: {
           include: {
-            portfolioItems: true,
-            workHistory: true,
+            preference: true,
           },
         },
+        portfolioItems: true,
+        workHistory: true,
       },
     });
   }
 
   /**
-   * Import profile and portfolio from Upwork
-   * Creates profile if doesn't exist, adds Upwork portfolio
+   * Import profile and portfolio items from Upwork
+   * Creates profile if doesn't exist, adds Upwork portfolio items
    */
   async importFromUpwork(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, upworkId, portfolioName, description, skills, totalEarnings, totalJobs, totalHours, ...profileData } = upworkData;
+    const { portfolioItems, workHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, ...profileData } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -83,6 +89,12 @@ export class ProfileService {
         data: {
           userId,
           name: upworkData.profileName,
+          upworkId,
+          skills: skills || [],
+          totalEarnings,
+          totalJobs,
+          totalHours,
+          syncedAt: new Date(),
           ...profileData,
         },
       });
@@ -92,69 +104,67 @@ export class ProfileService {
         where: { userId },
         data: {
           name: upworkData.profileName,
+          upworkId,
+          skills: skills || [],
+          totalEarnings,
+          totalJobs,
+          totalHours,
+          syncedAt: new Date(),
           ...profileData,
         },
       });
     }
 
-    // Check if this Upwork portfolio is already imported
-    if (upworkId) {
-      const existing = await this.prisma.portfolio.findUnique({
-        where: { upworkId },
+    // Add portfolio items as UPWORK_IMPORT type
+    if (portfolioItems && portfolioItems.length > 0) {
+      await this.prisma.portfolioItem.createMany({
+        data: portfolioItems.map(item => ({
+          ...item,
+          profileId: profile.id,
+          type: PortfolioType.UPWORK_IMPORT,
+        })),
       });
-
-      if (existing) {
-        throw new ConflictException('This Upwork portfolio has already been imported');
-      }
     }
 
-    // Create Upwork portfolio
-    return this.prisma.portfolio.create({
-      data: {
-        profileId: profile.id,
-        name: portfolioName,
-        description,
-        skills: skills || [],
-        upworkId,
-        type: PortfolioType.UPWORK_IMPORT,
-        syncedAt: new Date(),
-        totalEarnings,
-        totalJobs,
-        totalHours,
-        portfolioItems: portfolioItems ? {
-          create: portfolioItems,
-        } : undefined,
-        workHistory: workHistory ? {
-          create: workHistory,
-        } : undefined,
-      },
+    // Add work history items
+    if (workHistory && workHistory.length > 0) {
+      await this.prisma.workHistoryItem.createMany({
+        data: workHistory.map(item => ({
+          ...item,
+          profileId: profile.id,
+        })),
+      });
+    }
+
+    // Return updated profile with all relations
+    return this.prisma.profile.findUnique({
+      where: { id: profile.id },
       include: {
+        preferences: {
+          include: {
+            preference: true,
+          },
+        },
         portfolioItems: true,
         workHistory: true,
-        profile: true,
       },
     });
   }
 
   /**
-   * Sync all Upwork data - updates profile and all Upwork portfolios
-   * Custom portfolios are not affected
+   * Sync all Upwork data - updates profile and replaces all Upwork portfolio items
+   * Custom portfolio items are not affected
    */
   async syncAllUpworkData(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, upworkId, portfolioName, description, skills, totalEarnings, totalJobs, totalHours, ...profileData } = upworkData;
+    const { portfolioItems, workHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, ...profileData } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
       where: { userId },
-      include: {
-        portfolios: {
-          where: { type: PortfolioType.UPWORK_IMPORT },
-        },
-      },
     });
 
     if (!profile) {
-      // If no profile exists, create it with the Upwork portfolio
+      // If no profile exists, create it with the Upwork data
       return this.importFromUpwork(userId, upworkData);
     }
 
@@ -163,103 +173,84 @@ export class ProfileService {
       where: { userId },
       data: {
         name: upworkData.profileName,
+        upworkId,
+        skills: skills || [],
+        totalEarnings,
+        totalJobs,
+        totalHours,
+        syncedAt: new Date(),
         ...profileData,
-      },
-      include: {
-        portfolios: {
-          where: { type: PortfolioType.UPWORK_IMPORT },
-        },
       },
     });
 
-    // Find or create the Upwork portfolio
-    let upworkPortfolio = profile.portfolios.find(p => p.upworkId === upworkId);
+    // Delete all existing Upwork-imported items
+    await this.prisma.portfolioItem.deleteMany({
+      where: {
+        profileId: profile.id,
+        type: PortfolioType.UPWORK_IMPORT,
+      },
+    });
 
-    if (!upworkPortfolio) {
-      // Create new Upwork portfolio if it doesn't exist
-      upworkPortfolio = await this.prisma.portfolio.create({
-        data: {
+    await this.prisma.workHistoryItem.deleteMany({
+      where: {
+        profileId: profile.id,
+      },
+    });
+
+    // Add new portfolio items
+    if (portfolioItems && portfolioItems.length > 0) {
+      await this.prisma.portfolioItem.createMany({
+        data: portfolioItems.map(item => ({
+          ...item,
           profileId: profile.id,
-          name: portfolioName,
-          description,
-          skills: skills || [],
-          upworkId,
           type: PortfolioType.UPWORK_IMPORT,
-          syncedAt: new Date(),
-          totalEarnings,
-          totalJobs,
-          totalHours,
-          portfolioItems: portfolioItems ? {
-            create: portfolioItems,
-          } : undefined,
-          workHistory: workHistory ? {
-            create: workHistory,
-          } : undefined,
-        },
-        include: {
-          portfolioItems: true,
-          workHistory: true,
-          profile: true,
-        },
-      });
-    } else {
-      // Update existing Upwork portfolio
-      upworkPortfolio = await this.prisma.portfolio.update({
-        where: { id: upworkPortfolio.id },
-        data: {
-          name: portfolioName,
-          description,
-          skills: skills || [],
-          totalEarnings,
-          totalJobs,
-          totalHours,
-          syncedAt: new Date(),
-          portfolioItems: portfolioItems ? {
-            deleteMany: {},
-            create: portfolioItems,
-          } : undefined,
-          workHistory: workHistory ? {
-            deleteMany: {},
-            create: workHistory,
-          } : undefined,
-        },
-        include: {
-          portfolioItems: true,
-          workHistory: true,
-          profile: true,
-        },
+        })),
       });
     }
 
-    return upworkPortfolio;
+    // Add new work history items
+    if (workHistory && workHistory.length > 0) {
+      await this.prisma.workHistoryItem.createMany({
+        data: workHistory.map(item => ({
+          ...item,
+          profileId: profile.id,
+        })),
+      });
+    }
+
+    // Return updated profile with all relations
+    return this.prisma.profile.findUnique({
+      where: { id: profile.id },
+      include: {
+        preferences: {
+          include: {
+            preference: true,
+          },
+        },
+        portfolioItems: true,
+        workHistory: true,
+      },
+    });
   }
 
-  // ==================== PORTFOLIO OPERATIONS ====================
+  // ==================== PORTFOLIO ITEM OPERATIONS ====================
 
   /**
-   * Create a custom portfolio
+   * Create a custom portfolio item
    */
   async createPortfolio(userId: string, dto: CreatePortfolioDto) {
     const profile = await this.getOrCreateProfile(userId);
 
-    const { portfolioItems, workHistory, ...portfolioData } = dto;
+    // Extract only the fields that belong to PortfolioItem
+    const { name, description, skills, type } = dto;
 
-    return this.prisma.portfolio.create({
+    return this.prisma.portfolioItem.create({
       data: {
-        ...portfolioData,
+        title: name, // Map 'name' to 'title' for PortfolioItem
+        description,
+        skills: skills || [],
         profileId: profile.id,
-        type: PortfolioType.CUSTOM,
-        portfolioItems: portfolioItems ? {
-          create: portfolioItems,
-        } : undefined,
-        workHistory: workHistory ? {
-          create: workHistory,
-        } : undefined,
-      },
-      include: {
-        portfolioItems: true,
-        workHistory: true,
-        profile: true,
+        type: type || PortfolioType.CUSTOM,
       },
     });
   }
@@ -269,22 +260,18 @@ export class ProfileService {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
-    const [portfolios, total] = await Promise.all([
-      this.prisma.portfolio.findMany({
+    const [portfolioItems, total] = await Promise.all([
+      this.prisma.portfolioItem.findMany({
         where: { profileId: profile.id },
         skip,
         take: limit,
-        include: {
-          portfolioItems: true,
-          workHistory: true,
-        },
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.portfolio.count({ where: { profileId: profile.id } }),
+      this.prisma.portfolioItem.count({ where: { profileId: profile.id } }),
     ]);
 
     return {
-      data: portfolios,
+      data: portfolioItems,
       meta: {
         total,
         page,
@@ -294,104 +281,186 @@ export class ProfileService {
     };
   }
 
-  async getPortfolio(userId: string, portfolioId: string) {
+  async getPortfolio(userId: string, portfolioItemId: string) {
     const profile = await this.getOrCreateProfile(userId);
 
-    const portfolio = await this.prisma.portfolio.findUnique({
-      where: { id: portfolioId },
-      include: {
-        portfolioItems: true,
-        workHistory: true,
-        profile: true,
-      },
+    const portfolioItem = await this.prisma.portfolioItem.findUnique({
+      where: { id: portfolioItemId },
     });
 
-    if (!portfolio) {
-      throw new NotFoundException('Portfolio not found');
+    if (!portfolioItem) {
+      throw new NotFoundException('Portfolio item not found');
     }
 
-    if (portfolio.profileId !== profile.id) {
-      throw new BadRequestException('You do not have access to this portfolio');
+    if (portfolioItem.profileId !== profile.id) {
+      throw new BadRequestException('You do not have access to this portfolio item');
     }
 
-    return portfolio;
+    return portfolioItem;
   }
 
   /**
-   * Update any portfolio
+   * Update any portfolio item
    */
-  async updatePortfolio(userId: string, portfolioId: string, dto: UpdatePortfolioDto) {
-    await this.getPortfolio(userId, portfolioId); // Verify ownership
+  async updatePortfolio(userId: string, portfolioItemId: string, dto: UpdatePortfolioDto) {
+    await this.getPortfolio(userId, portfolioItemId); // Verify ownership
 
-    const { portfolioItems, workHistory, ...portfolioData } = dto;
+    // Extract only the fields that belong to PortfolioItem
+    const { name, description, skills } = dto;
 
-    return this.prisma.portfolio.update({
-      where: { id: portfolioId },
+    return this.prisma.portfolioItem.update({
+      where: { id: portfolioItemId },
       data: {
-        ...portfolioData,
-        portfolioItems: portfolioItems ? {
-          deleteMany: {},
-          create: portfolioItems,
-        } : undefined,
-        workHistory: workHistory ? {
-          deleteMany: {},
-          create: workHistory,
-        } : undefined,
-      },
-      include: {
-        portfolioItems: true,
-        workHistory: true,
-        profile: true,
+        ...(name && { title: name }), // Map 'name' to 'title'
+        ...(description && { description }),
+        ...(skills && { skills }),
       },
     });
   }
 
   /**
-   * Sync Upwork portfolio with latest data
+   * Sync Upwork portfolio items with latest data
    */
-  async syncUpworkPortfolio(userId: string, portfolioId: string, upworkData: ImportUpworkDto) {
-    const portfolio = await this.getPortfolio(userId, portfolioId);
+  async syncUpworkPortfolio(userId: string, portfolioItemId: string, upworkData: ImportUpworkDto) {
+    const portfolioItem = await this.getPortfolio(userId, portfolioItemId);
 
-    if (portfolio.type !== PortfolioType.UPWORK_IMPORT) {
-      throw new BadRequestException('This endpoint can only sync Upwork-imported portfolios');
+    if (portfolioItem.type !== PortfolioType.UPWORK_IMPORT) {
+      throw new BadRequestException('This endpoint can only sync Upwork-imported portfolio items');
     }
 
-    const { portfolioItems, workHistory, upworkId, portfolioName, description, skills, totalEarnings, totalJobs, totalHours } = upworkData;
-
-    return this.prisma.portfolio.update({
-      where: { id: portfolioId },
-      data: {
-        name: portfolioName,
-        description,
-        skills: skills || [],
-        totalEarnings,
-        totalJobs,
-        totalHours,
-        syncedAt: new Date(),
-        portfolioItems: portfolioItems ? {
-          deleteMany: {},
-          create: portfolioItems,
-        } : undefined,
-        workHistory: workHistory ? {
-          deleteMany: {},
-          create: workHistory,
-        } : undefined,
-      },
-      include: {
-        portfolioItems: true,
-        workHistory: true,
-        profile: true,
-      },
-    });
+    // For individual item sync, just use syncAllUpworkData
+    return this.syncAllUpworkData(userId, upworkData);
   }
 
-  async deletePortfolio(userId: string, portfolioId: string) {
-    await this.getPortfolio(userId, portfolioId); // Verify ownership
+  async deletePortfolio(userId: string, portfolioItemId: string) {
+    await this.getPortfolio(userId, portfolioItemId); // Verify ownership
 
-    await this.prisma.portfolio.delete({
-      where: { id: portfolioId },
+    await this.prisma.portfolioItem.delete({
+      where: { id: portfolioItemId },
     });
 
-    return { message: 'Portfolio deleted successfully' };
+    return { message: 'Portfolio item deleted successfully' };
+  }
+
+  // ==================== PREFERENCE OPERATIONS ====================
+
+  /**
+   * Get profile with preferences
+   */
+  async getProfileWithPreferences(userId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    const profileWithPreferences = await this.prisma.profile.findUnique({
+      where: { id: profile.id },
+      include: {
+        preferences: {
+          include: {
+            preference: true,
+          },
+        },
+        portfolioItems: true,
+        workHistory: true,
+      },
+    });
+
+    // Transform to include preferences array
+    return {
+      ...profileWithPreferences,
+      selectedPreferences: profileWithPreferences?.preferences.map(pp => pp.preference) || [],
+    };
+  }
+
+  /**
+   * Update profile preferences (replaces all)
+   */
+  async updatePreferences(userId: string, preferenceIds: string[]) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    // Validate that all preference IDs exist and are active
+    const preferences = await this.prisma.aIPreference.findMany({
+      where: {
+        id: { in: preferenceIds },
+        isActive: true,
+      },
+    });
+
+    if (preferences.length !== preferenceIds.length) {
+      throw new BadRequestException('One or more preference IDs are invalid or inactive');
+    }
+
+    // Delete existing preferences
+    await this.prisma.profilePreference.deleteMany({
+      where: { profileId: profile.id },
+    });
+
+    // Create new preferences
+    await this.prisma.profilePreference.createMany({
+      data: preferenceIds.map(preferenceId => ({
+        profileId: profile.id,
+        preferenceId,
+      })),
+    });
+
+    return this.getProfileWithPreferences(userId);
+  }
+
+  /**
+   * Add a single preference to profile
+   */
+  async addPreference(userId: string, preferenceId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    // Validate preference exists and is active
+    const preference = await this.prisma.aIPreference.findUnique({
+      where: { id: preferenceId },
+    });
+
+    if (!preference || !preference.isActive) {
+      throw new BadRequestException('Invalid or inactive preference ID');
+    }
+
+    // Check if already exists
+    const existing = await this.prisma.profilePreference.findUnique({
+      where: {
+        profileId_preferenceId: {
+          profileId: profile.id,
+          preferenceId,
+        },
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException('Preference already added to profile');
+    }
+
+    // Add preference
+    await this.prisma.profilePreference.create({
+      data: {
+        profileId: profile.id,
+        preferenceId,
+      },
+    });
+
+    return this.getProfileWithPreferences(userId);
+  }
+
+  /**
+   * Remove a preference from profile
+   */
+  async removePreference(userId: string, preferenceId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    const deleted = await this.prisma.profilePreference.deleteMany({
+      where: {
+        profileId: profile.id,
+        preferenceId,
+      },
+    });
+
+    if (deleted.count === 0) {
+      throw new NotFoundException('Preference not found in profile');
+    }
+
+    return this.getProfileWithPreferences(userId);
   }
 }
