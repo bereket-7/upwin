@@ -23,4 +23,12 @@ export class WorkHistoryItemDto {
   @IsString()
   @IsOptional()
   rawStats?: string;
+
+  @IsString()
+  @IsOptional()
+  company?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
 }
