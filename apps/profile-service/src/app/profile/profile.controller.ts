@@ -8,6 +8,7 @@ import {
   Delete, 
   UseGuards,
   Query,
+  Put,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '@org/shared';
@@ -17,6 +18,7 @@ import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { PaginationDto } from './dto/pagination.dto';
 import { ImportUpworkDto } from './dto/import-upwork.dto';
+import { UpdateProfilePreferencesDto, AddProfilePreferenceDto } from './dto/update-profile-preferences.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('profile')
@@ -115,5 +117,40 @@ export class ProfileController {
     @CurrentUser('userId') userId: string
   ) {
     return this.profileService.deletePortfolio(userId, id);
+  }
+
+  // ==================== PREFERENCE ENDPOINTS ====================
+
+  @Get('preferences')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getProfileWithPreferences(@CurrentUser('userId') userId: string) {
+    return this.profileService.getProfileWithPreferences(userId);
+  }
+
+  @Put('preferences')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updatePreferences(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateProfilePreferencesDto
+  ) {
+    return this.profileService.updatePreferences(userId, dto.preferenceIds);
+  }
+
+  @Post('preferences')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  addPreference(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: AddProfilePreferenceDto
+  ) {
+    return this.profileService.addPreference(userId, dto.preferenceId);
+  }
+
+  @Delete('preferences/:preferenceId')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  removePreference(
+    @Param('preferenceId') preferenceId: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.removePreference(userId, preferenceId);
   }
 }
