@@ -21,6 +21,7 @@ export interface Profile {
 
 export interface PortfolioItem {
   id: string;
+  type?: string; // 'CUSTOM' | 'UPWORK_IMPORT'
   title: string;
   description?: string;
   role?: string;
