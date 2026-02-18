@@ -33,7 +33,6 @@ async function bootstrap() {
   Logger.log(
     `🚀 Proposal Service is running on: http://localhost:${port}/${globalPrefix}`,
   );
-  Logger.log("success");
 }
 
 bootstrap();
