@@ -133,7 +133,7 @@ Write the proposal now:`;
       // Check title relevance
       if (portfolio.title) {
         const titleWords = portfolio.title.toLowerCase().split(/\s+/);
-        titleWords.forEach(word => {
+        titleWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
             score += 3;
           }
@@ -143,7 +143,7 @@ Write the proposal now:`;
       // Check description relevance
       if (portfolio.description) {
         const descWords = portfolio.description.toLowerCase().split(/\s+/);
-        descWords.forEach(word => {
+        descWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
             score += 1;
           }
@@ -184,7 +184,7 @@ Write the proposal now:`;
       // Check title relevance
       if (work.title) {
         const titleWords = work.title.toLowerCase().split(/\s+/);
-        titleWords.forEach(word => {
+        titleWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
             score += 3;
           }
@@ -194,7 +194,7 @@ Write the proposal now:`;
       // Check company relevance
       if (work.company) {
         const companyWords = work.company.toLowerCase().split(/\s+/);
-        companyWords.forEach(word => {
+        companyWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
             score += 2;
           }
@@ -204,7 +204,7 @@ Write the proposal now:`;
       // Check description relevance
       if (work.description) {
         const descWords = work.description.toLowerCase().split(/\s+/);
-        descWords.forEach(word => {
+        descWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
             score += 1;
           }
