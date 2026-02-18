@@ -40,7 +40,6 @@ async function bootstrap() {
   Logger.log(
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
   );
-  Logger.log('Profile Service - Fresh deployment');
 }
 
 bootstrap();
