@@ -43,7 +43,8 @@ export class ImportUpworkDto {
   upworkId?: string;
 
   @IsString()
-  portfolioName!: string;
+  @IsOptional()
+  portfolioName?: string;
 
   @IsString()
   @IsOptional()

@@ -76,7 +76,7 @@ export class ProfileService {
    * Creates profile if doesn't exist, adds Upwork portfolio items
    */
   async importFromUpwork(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, ...profileData } = upworkData;
+    const { portfolioItems, workHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -88,14 +88,20 @@ export class ProfileService {
       profile = await this.prisma.profile.create({
         data: {
           userId,
-          name: upworkData.profileName,
+          name: profileName,
+          avatar,
+          location,
+          country,
+          city,
+          title,
+          hourlyRate,
+          experienceYrs,
           upworkId,
           skills: skills || [],
           totalEarnings,
           totalJobs,
           totalHours,
           syncedAt: new Date(),
-          ...profileData,
         },
       });
     } else {
@@ -103,14 +109,20 @@ export class ProfileService {
       profile = await this.prisma.profile.update({
         where: { userId },
         data: {
-          name: upworkData.profileName,
+          name: profileName,
+          avatar,
+          location,
+          country,
+          city,
+          title,
+          hourlyRate,
+          experienceYrs,
           upworkId,
           skills: skills || [],
           totalEarnings,
           totalJobs,
           totalHours,
           syncedAt: new Date(),
-          ...profileData,
         },
       });
     }
@@ -156,7 +168,7 @@ export class ProfileService {
    * Custom portfolio items are not affected
    */
   async syncAllUpworkData(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, ...profileData } = upworkData;
+    const { portfolioItems, workHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -172,14 +184,20 @@ export class ProfileService {
     profile = await this.prisma.profile.update({
       where: { userId },
       data: {
-        name: upworkData.profileName,
+        name: profileName,
+        avatar,
+        location,
+        country,
+        city,
+        title,
+        hourlyRate,
+        experienceYrs,
         upworkId,
         skills: skills || [],
         totalEarnings,
         totalJobs,
         totalHours,
         syncedAt: new Date(),
-        ...profileData,
       },
     });
 
