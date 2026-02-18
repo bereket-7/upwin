@@ -128,14 +128,16 @@ Write the proposal now:`;
     
     // Score each portfolio item
     const scored = portfolios.map(portfolio => {
-      let score = 0;
+      let rawScore = 0;
+      let maxScore = 0;
       
       // Check title relevance
       if (portfolio.title) {
         const titleWords = portfolio.title.toLowerCase().split(/\s+/);
+        maxScore += titleWords.length * 3; // Each word could potentially match
         titleWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
-            score += 3;
+            rawScore += 3;
           }
         });
       }
@@ -143,28 +145,43 @@ Write the proposal now:`;
       // Check description relevance
       if (portfolio.description) {
         const descWords = portfolio.description.toLowerCase().split(/\s+/);
+        maxScore += descWords.length * 1; // Each word could potentially match
         descWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
-            score += 1;
+            rawScore += 1;
           }
         });
       }
       
-      // Check skills match
+      // Check skills match (most important)
       if (portfolio.skills && Array.isArray(portfolio.skills)) {
+        maxScore += portfolio.skills.length * 5; // Each skill could potentially match
         portfolio.skills.forEach((skill: string) => {
           if (jobLower.includes(skill.toLowerCase())) {
-            score += 5; // Skills are most important
+            rawScore += 5;
           }
         });
       }
       
-      return { ...portfolio, relevanceScore: score };
+      // Calculate percentage (0-100)
+      const relevancePercentage = maxScore > 0 ? Math.round((rawScore / maxScore) * 100) : 0;
+      
+      // Determine tier
+      const tier = this.getRelevanceTier(relevancePercentage);
+      
+      return { 
+        ...portfolio, 
+        relevanceScore: relevancePercentage,
+        relevanceTier: tier,
+        _rawScore: rawScore,
+        _maxScore: maxScore,
+      };
     });
     
-    // Sort by relevance score (highest first) and filter out zero scores
+    // Filter out items with score < 20% (not relevant enough)
+    // Sort by relevance score (highest first)
     return scored
-      .filter(p => p.relevanceScore > 0)
+      .filter(p => p.relevanceScore >= 20)
       .sort((a, b) => b.relevanceScore - a.relevanceScore);
   }
 
@@ -179,14 +196,16 @@ Write the proposal now:`;
     
     // Score each work history item
     const scored = workHistory.map(work => {
-      let score = 0;
+      let rawScore = 0;
+      let maxScore = 0;
       
       // Check title relevance
       if (work.title) {
         const titleWords = work.title.toLowerCase().split(/\s+/);
+        maxScore += titleWords.length * 3;
         titleWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
-            score += 3;
+            rawScore += 3;
           }
         });
       }
@@ -194,9 +213,10 @@ Write the proposal now:`;
       // Check company relevance
       if (work.company) {
         const companyWords = work.company.toLowerCase().split(/\s+/);
+        maxScore += companyWords.length * 2;
         companyWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
-            score += 2;
+            rawScore += 2;
           }
         });
       }
@@ -204,20 +224,44 @@ Write the proposal now:`;
       // Check description relevance
       if (work.description) {
         const descWords = work.description.toLowerCase().split(/\s+/);
+        maxScore += descWords.length * 1;
         descWords.forEach((word: string) => {
           if (word.length > 3 && jobLower.includes(word)) {
-            score += 1;
+            rawScore += 1;
           }
         });
       }
       
-      return { ...work, relevanceScore: score };
+      // Calculate percentage (0-100)
+      const relevancePercentage = maxScore > 0 ? Math.round((rawScore / maxScore) * 100) : 0;
+      
+      // Determine tier
+      const tier = this.getRelevanceTier(relevancePercentage);
+      
+      return { 
+        ...work, 
+        relevanceScore: relevancePercentage,
+        relevanceTier: tier,
+        _rawScore: rawScore,
+        _maxScore: maxScore,
+      };
     });
     
-    // Sort by relevance score (highest first) and filter out zero scores
+    // Filter out items with score < 20% (not relevant enough)
+    // Sort by relevance score (highest first)
     return scored
-      .filter(w => w.relevanceScore > 0)
+      .filter(w => w.relevanceScore >= 20)
       .sort((a, b) => b.relevanceScore - a.relevanceScore);
+  }
+
+  /**
+   * Get relevance tier based on percentage score
+   */
+  private getRelevanceTier(percentage: number): string {
+    if (percentage >= 80) return 'highly_relevant';
+    if (percentage >= 50) return 'relevant';
+    if (percentage >= 20) return 'somewhat_relevant';
+    return 'not_relevant';
   }
 
   private formatRagContextForPrompt(ragContext: RagContext): string {
@@ -291,11 +335,13 @@ Write the proposal now:`;
           id: p.id,
           title: p.title,
           relevanceScore: p.relevanceScore,
+          relevanceTier: p.relevanceTier,
         })),
         workHistoryUsed: relevantWork.map(w => ({
           id: w.id,
           title: w.title,
           relevanceScore: w.relevanceScore,
+          relevanceTier: w.relevanceTier,
         })),
       },
     };
