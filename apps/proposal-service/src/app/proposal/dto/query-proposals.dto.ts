@@ -16,6 +16,10 @@ export class QueryProposalsDto {
   @IsOptional()
   profileId?: string;
 
+  @IsString()
+  @IsOptional()
+  jobId?: string;
+
   @IsEnum(ProposalStatus)
   @IsOptional()
   status?: ProposalStatus;
