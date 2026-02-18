@@ -31,41 +31,21 @@ model Profile {
   bio           String?
   hourlyRate    Float?
   experienceYrs Int?
-  
-  // AI preferences (default for all portfolios)
-  defaultTone          String?
-  defaultWritingStyle  String?
-
-  // Relations
-  portfolios    Portfolio[]
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([userId])
-}
-
-model Portfolio {
-  id            String        @id @default(uuid())
-  profileId     String
-  profile       Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  
-  type          PortfolioType @default(CUSTOM)
-  name          String        // e.g., "Full Stack Developer", "My Upwork Portfolio"
-  
-  // Upwork-specific
-  upworkId      String?       @unique
-  syncedAt      DateTime?
-  
-  // Portfolio-specific content
-  description   String?
   skills        String[]
   
-  // Upwork stats (only for UPWORK_IMPORT)
+  // Upwork-specific
+  upworkId      String?   @unique
+  syncedAt      DateTime?
+  
+  // Upwork stats
   totalEarnings String?
   totalJobs     String?
   totalHours    String?
   
+  // AI preferences
+  defaultTone          String?
+  defaultWritingStyle  String?
+
   // Relations
   portfolioItems PortfolioItem[]
   workHistory    WorkHistoryItem[]
@@ -73,16 +53,16 @@ model Portfolio {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@index([profileId])
+  @@index([userId])
   @@index([upworkId])
-  @@index([type])
 }
 
 model PortfolioItem {
-  id          String    @id @default(uuid())
-  portfolioId String
-  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  id          String        @id @default(uuid())
+  profileId   String
+  profile     Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
   
+  type        PortfolioType @default(CUSTOM)
   title       String
   image       String?
   description String?
@@ -93,13 +73,14 @@ model PortfolioItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([portfolioId])
+  @@index([profileId])
+  @@index([type])
 }
 
 model WorkHistoryItem {
   id          String    @id @default(uuid())
-  portfolioId String
-  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  profileId   String
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
   
   title       String
   company     String?
@@ -112,5 +93,5 @@ model WorkHistoryItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([portfolioId])
+  @@index([profileId])
 }

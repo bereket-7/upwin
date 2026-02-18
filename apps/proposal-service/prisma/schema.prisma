@@ -23,7 +23,6 @@ model Proposal {
   
   // Job details
   jobId          String?
-  jobSource      String            // "upwork", "freelancer", etc.
   jobUrl         String?
   jobTitle       String?
   jobDescription String?           @db.Text

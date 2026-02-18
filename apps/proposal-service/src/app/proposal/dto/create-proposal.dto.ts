@@ -14,10 +14,6 @@ export class CreateProposalDto {
   jobId?: string;
 
   @IsString()
-  @IsNotEmpty()
-  jobSource!: string;
-
-  @IsString()
   @IsOptional()
   jobUrl?: string;
 
