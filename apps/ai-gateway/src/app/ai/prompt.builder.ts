@@ -5,13 +5,24 @@ import { RagContext } from './rag/interfaces/rag.interface';
 @Injectable()
 export class PromptBuilder {
   buildSystemPrompt(profile: Profile): string {
-    const tone = profile.tone || 'professional';
-    const writingStyle = profile.writingStyle || 'clear and concise';
+    // Extract preferences by category
+    const tonePreference = profile.preferences?.find(p => p.category === 'TONE');
+    const stylePreference = profile.preferences?.find(p => p.category === 'WRITING_STYLE');
+    const lengthPreference = profile.preferences?.find(p => p.category === 'LENGTH');
+
+    // Use preference values or fall back to deprecated fields or defaults
+    const tone = tonePreference?.value || profile.tone || 'professional';
+    const writingStyle = stylePreference?.value || profile.writingStyle || 'clear and concise';
+    const length = lengthPreference?.value || 'medium';
+
+    // Map length to word count guidance
+    const lengthGuidance = this.getLengthGuidance(length);
 
     return `You are a professional freelancer writing a proposal for a job opportunity. Your writing must be:
 
 TONE: ${tone}
 STYLE: ${writingStyle}
+LENGTH: ${lengthGuidance}
 
 CRITICAL RULES:
 - Write naturally and conversationally, like a real human freelancer
@@ -20,13 +31,22 @@ CRITICAL RULES:
 - Show genuine interest in the project
 - Reference specific job requirements naturally
 - NEVER invent skills, experience, or projects not in your profile
-- Keep it concise (300-500 words ideal)
+- Keep it ${lengthGuidance}
 - Focus on value you can deliver to the client
 - End with a clear call to action
 
 IMPORTANT: Reference examples and templates are provided for INSPIRATION ONLY. They show structure and tone, but you must write original content based on YOUR profile and THIS specific job.
 
 Your goal is to sound like a skilled professional who genuinely understands the client's needs and can deliver results.`;
+  }
+
+  private getLengthGuidance(length: string): string {
+    const lengthMap: Record<string, string> = {
+      short: '200-300 words',
+      medium: '300-500 words',
+      long: '500-700 words',
+    };
+    return lengthMap[length] || '300-500 words';
   }
 
   buildUserPrompt(profile: Profile, jobDescription: string, ragContext?: RagContext): string {
