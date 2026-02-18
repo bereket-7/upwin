@@ -37,12 +37,14 @@ export class ProposalResponseDto {
     portfoliosUsed: Array<{
       id: string;
       title: string;
-      relevanceScore: number;
+      relevanceScore: number; // Percentage 0-100
+      relevanceTier: 'highly_relevant' | 'relevant' | 'somewhat_relevant';
     }>;
     workHistoryUsed: Array<{
       id: string;
       title: string;
-      relevanceScore: number;
+      relevanceScore: number; // Percentage 0-100
+      relevanceTier: 'highly_relevant' | 'relevant' | 'somewhat_relevant';
     }>;
   };
 }
