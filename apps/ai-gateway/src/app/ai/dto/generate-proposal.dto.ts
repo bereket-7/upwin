@@ -28,4 +28,21 @@ export class GenerateProposalDto {
 
 export class ProposalResponseDto {
   proposal!: string;
+  metadata?: {
+    preferencesUsed: {
+      tone?: string;
+      writingStyle?: string;
+      length?: string;
+    };
+    portfoliosUsed: Array<{
+      id: string;
+      title: string;
+      relevanceScore: number;
+    }>;
+    workHistoryUsed: Array<{
+      id: string;
+      title: string;
+      relevanceScore: number;
+    }>;
+  };
 }
