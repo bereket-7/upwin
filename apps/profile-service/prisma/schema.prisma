@@ -15,6 +15,12 @@ enum PortfolioType {
   UPWORK_IMPORT
 }
 
+enum PreferenceCategory {
+  TONE
+  WRITING_STYLE
+  LENGTH
+}
+
 model Profile {
   id            String   @id @default(uuid())
   userId        String   @unique // One profile per user
@@ -41,14 +47,11 @@ model Profile {
   totalEarnings String?
   totalJobs     String?
   totalHours    String?
-  
-  // AI preferences
-  defaultTone          String?
-  defaultWritingStyle  String?
 
   // Relations
-  portfolioItems PortfolioItem[]
-  workHistory    WorkHistoryItem[]
+  preferences       ProfilePreference[]
+  portfolioItems    PortfolioItem[]
+  workHistory       WorkHistoryItem[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -94,4 +97,39 @@ model WorkHistoryItem {
   updatedAt   DateTime @updatedAt
 
   @@index([profileId])
+}
+
+model AIPreference {
+  id          String              @id @default(uuid())
+  category    PreferenceCategory
+  name        String              // "Professional", "Friendly", "Concise"
+  value       String              // Internal value used by AI
+  description String?             // Help text for users
+  isActive    Boolean             @default(true)
+  isDefault   Boolean             @default(false)
+  sortOrder   Int                 @default(0)
+  
+  // Many-to-many relation
+  profiles    ProfilePreference[]
+  
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  
+  @@unique([category, name])
+  @@index([category, isActive])
+}
+
+model ProfilePreference {
+  id            String        @id @default(uuid())
+  profileId     String
+  preferenceId  String
+  
+  profile       Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  preference    AIPreference  @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime      @default(now())
+  
+  @@unique([profileId, preferenceId])
+  @@index([profileId])
+  @@index([preferenceId])
 }
