@@ -8,7 +8,6 @@ export interface CreateProposalDto {
   userId: string;
   profileId: string;
   jobId?: string;
-  jobSource: string;
   jobUrl?: string;
   jobTitle?: string;
   jobDescription?: string;

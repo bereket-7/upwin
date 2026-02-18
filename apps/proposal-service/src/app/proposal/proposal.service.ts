@@ -22,7 +22,6 @@ export class ProposalService {
         userId: dto.userId,
         profileId: dto.profileId,
         jobId: dto.jobId,
-        jobSource: dto.jobSource,
         jobUrl: dto.jobUrl,
         jobTitle: dto.jobTitle,
         jobDescription: dto.jobDescription,
