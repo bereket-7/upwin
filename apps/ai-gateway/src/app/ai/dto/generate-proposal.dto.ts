@@ -19,10 +19,6 @@ export class GenerateProposalDto {
 
   @IsString()
   @IsOptional()
-  jobSource?: string;
-
-  @IsString()
-  @IsOptional()
   jobUrl?: string;
 
   @IsString()
