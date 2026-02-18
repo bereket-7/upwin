@@ -60,24 +60,30 @@ Your goal is to sound like a skilled professional who genuinely understands the 
 
     const title = profile.title || 'Freelancer';
 
-    // Build portfolio context if available
+    // Build portfolio context with relevance filtering
     let portfolioContext = '';
     if (profile.portfolio && profile.portfolio.length > 0) {
-      const portfolioItems = profile.portfolio
-        .slice(0, 3)
-        .map(item => `- ${item.title}${item.description ? ': ' + item.description : ''}`)
-        .join('\n');
-      portfolioContext = `\n\nRELEVANT PROJECTS:\n${portfolioItems}`;
+      const relevantPortfolios = this.filterRelevantPortfolios(profile.portfolio, jobDescription);
+      if (relevantPortfolios.length > 0) {
+        const portfolioItems = relevantPortfolios
+          .slice(0, 3) // Top 3 most relevant
+          .map(item => `- ${item.title}${item.description ? ': ' + item.description : ''}`)
+          .join('\n');
+        portfolioContext = `\n\nRELEVANT PROJECTS:\n${portfolioItems}`;
+      }
     }
 
-    // Build work history context if available
+    // Build work history context with relevance filtering
     let workHistoryContext = '';
     if (profile.workHistory && profile.workHistory.length > 0) {
-      const workItems = profile.workHistory
-        .slice(0, 3)
-        .map(item => `- ${item.title}${item.dates ? ' (' + item.dates + ')' : ''}`)
-        .join('\n');
-      workHistoryContext = `\n\nRECENT WORK:\n${workItems}`;
+      const relevantWork = this.filterRelevantWorkHistory(profile.workHistory, jobDescription);
+      if (relevantWork.length > 0) {
+        const workItems = relevantWork
+          .slice(0, 3) // Top 3 most relevant
+          .map(item => `- ${item.title}${item.dates ? ' (' + item.dates + ')' : ''}`)
+          .join('\n');
+        workHistoryContext = `\n\nRECENT WORK:\n${workItems}`;
+      }
     }
 
     const overview = profile.bio || `I'm a ${title} with ${experience} specializing in ${skills}.`;
@@ -109,6 +115,109 @@ Write a compelling job proposal that:
 6. Ends with a clear next step
 
 Write the proposal now:`;
+  }
+
+  /**
+   * Filter and rank portfolio items by relevance to job description
+   */
+  private filterRelevantPortfolios(
+    portfolios: any[],
+    jobDescription: string
+  ): any[] {
+    const jobLower = jobDescription.toLowerCase();
+    
+    // Score each portfolio item
+    const scored = portfolios.map(portfolio => {
+      let score = 0;
+      
+      // Check title relevance
+      if (portfolio.title) {
+        const titleWords = portfolio.title.toLowerCase().split(/\s+/);
+        titleWords.forEach(word => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            score += 3;
+          }
+        });
+      }
+      
+      // Check description relevance
+      if (portfolio.description) {
+        const descWords = portfolio.description.toLowerCase().split(/\s+/);
+        descWords.forEach(word => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            score += 1;
+          }
+        });
+      }
+      
+      // Check skills match
+      if (portfolio.skills && Array.isArray(portfolio.skills)) {
+        portfolio.skills.forEach((skill: string) => {
+          if (jobLower.includes(skill.toLowerCase())) {
+            score += 5; // Skills are most important
+          }
+        });
+      }
+      
+      return { ...portfolio, relevanceScore: score };
+    });
+    
+    // Sort by relevance score (highest first) and filter out zero scores
+    return scored
+      .filter(p => p.relevanceScore > 0)
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
+  }
+
+  /**
+   * Filter and rank work history by relevance to job description
+   */
+  private filterRelevantWorkHistory(
+    workHistory: any[],
+    jobDescription: string
+  ): any[] {
+    const jobLower = jobDescription.toLowerCase();
+    
+    // Score each work history item
+    const scored = workHistory.map(work => {
+      let score = 0;
+      
+      // Check title relevance
+      if (work.title) {
+        const titleWords = work.title.toLowerCase().split(/\s+/);
+        titleWords.forEach(word => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            score += 3;
+          }
+        });
+      }
+      
+      // Check company relevance
+      if (work.company) {
+        const companyWords = work.company.toLowerCase().split(/\s+/);
+        companyWords.forEach(word => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            score += 2;
+          }
+        });
+      }
+      
+      // Check description relevance
+      if (work.description) {
+        const descWords = work.description.toLowerCase().split(/\s+/);
+        descWords.forEach(word => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            score += 1;
+          }
+        });
+      }
+      
+      return { ...work, relevanceScore: score };
+    });
+    
+    // Sort by relevance score (highest first) and filter out zero scores
+    return scored
+      .filter(w => w.relevanceScore > 0)
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
   }
 
   private formatRagContextForPrompt(ragContext: RagContext): string {
