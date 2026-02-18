@@ -11,18 +11,26 @@ import { AiStreamingService } from './streaming/ai-streaming.service';
 import { ProposalClientModule } from '../proposal-client/proposal-client.module';
 import { JobReviewController } from './job-review/job-review.controller';
 import { JobReviewService } from './job-review/job-review.service';
+import { QuestionAnswerController } from './question-answer/question-answer.controller';
+import { QuestionAnswerService } from './question-answer/question-answer.service';
 
 @Module({
   imports: [ConfigModule, RagModule, ProposalClientModule],
-  controllers: [AiController, AiStreamingController, JobReviewController],
+  controllers: [
+    AiController,
+    AiStreamingController,
+    JobReviewController,
+    QuestionAnswerController,
+  ],
   providers: [
     AiService,
     AiStreamingService,
     JobReviewService,
+    QuestionAnswerService,
     ProfileClient,
     PromptBuilder,
     GeminiConfig,
   ],
-  exports: [AiService, AiStreamingService, JobReviewService],
+  exports: [AiService, AiStreamingService, JobReviewService, QuestionAnswerService],
 })
 export class AiModule {}
