@@ -92,6 +92,8 @@ jobs:
               -e 'API_URL=${{ secrets.API_URL }}' \
               -e 'DATABASE_URL=${{ secrets.DATABASE_URL }}' \
               -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
+              -e 'JWT_EXPIRY=${{ secrets.JWT_EXPIRY }}' \
+              -e 'JWT_REFRESH_EXPIRY=${{ secrets.JWT_REFRESH_EXPIRY }}' \
               -e 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' \
               -e 'GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}' \
               -e 'LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}' \
