@@ -6,6 +6,8 @@ import { Reflector } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AdminSeedService } from './admin-seed.service';
+import { SessionService } from './session.service';
+import { SessionCleanupService } from './session-cleanup.service';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
@@ -30,7 +32,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.getJwtSecret(),
-        signOptions: { expiresIn: '15m' },
+        signOptions: { expiresIn: configService.getJwtExpiry() as any },
       }),
     }),
   ],
@@ -38,6 +40,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
   providers: [
     AuthService,
     AdminSeedService,
+    SessionService,
+    SessionCleanupService,
     JwtStrategy,
     LocalStrategy,
     GoogleStrategy,
