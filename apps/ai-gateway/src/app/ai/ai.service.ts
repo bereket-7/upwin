@@ -38,9 +38,9 @@ export class AiService {
         this.logger.warn('No RAG context retrieved, proceeding with profile data only');
       }
 
-      // Step 3: Build structured prompt with RAG context
+      // Step 3: Build structured prompt with RAG context and get metadata
       this.logger.log('Building prompt with RAG context');
-      const { system, user } = this.promptBuilder.buildPrompt(profile, jobDescription, ragContext);
+      const { system, user, metadata } = this.promptBuilder.buildPrompt(profile, jobDescription, ragContext);
 
       // Step 4: Call Gemini 2.5 Flash API
       this.logger.log("Calling Gemini 2.5 Flash API");
@@ -83,9 +83,10 @@ export class AiService {
         authorization,
       );
 
-      // Step 6: Return generated proposal immediately
+      // Step 6: Return generated proposal with metadata
       return {
         proposal: proposal.trim(),
+        metadata,
       };
     } catch (error) {
       // Handle specific errors

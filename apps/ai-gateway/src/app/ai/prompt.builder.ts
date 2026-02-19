@@ -5,13 +5,24 @@ import { RagContext } from './rag/interfaces/rag.interface';
 @Injectable()
 export class PromptBuilder {
   buildSystemPrompt(profile: Profile): string {
-    const tone = profile.tone || 'professional';
-    const writingStyle = profile.writingStyle || 'clear and concise';
+    // Extract preferences by category
+    const tonePreference = profile.preferences?.find(p => p.category === 'TONE');
+    const stylePreference = profile.preferences?.find(p => p.category === 'WRITING_STYLE');
+    const lengthPreference = profile.preferences?.find(p => p.category === 'LENGTH');
+
+    // Use preference values or fall back to deprecated fields or defaults
+    const tone = tonePreference?.value || profile.tone || 'professional';
+    const writingStyle = stylePreference?.value || profile.writingStyle || 'clear and concise';
+    const length = lengthPreference?.value || 'medium';
+
+    // Map length to word count guidance
+    const lengthGuidance = this.getLengthGuidance(length);
 
     return `You are a professional freelancer writing a proposal for a job opportunity. Your writing must be:
 
 TONE: ${tone}
 STYLE: ${writingStyle}
+LENGTH: ${lengthGuidance}
 
 CRITICAL RULES:
 - Write naturally and conversationally, like a real human freelancer
@@ -20,13 +31,22 @@ CRITICAL RULES:
 - Show genuine interest in the project
 - Reference specific job requirements naturally
 - NEVER invent skills, experience, or projects not in your profile
-- Keep it concise (300-500 words ideal)
+- Keep it ${lengthGuidance}
 - Focus on value you can deliver to the client
 - End with a clear call to action
 
 IMPORTANT: Reference examples and templates are provided for INSPIRATION ONLY. They show structure and tone, but you must write original content based on YOUR profile and THIS specific job.
 
 Your goal is to sound like a skilled professional who genuinely understands the client's needs and can deliver results.`;
+  }
+
+  private getLengthGuidance(length: string): string {
+    const lengthMap: Record<string, string> = {
+      short: '200-300 words',
+      medium: '300-500 words',
+      long: '500-700 words',
+    };
+    return lengthMap[length] || '300-500 words';
   }
 
   buildUserPrompt(profile: Profile, jobDescription: string, ragContext?: RagContext): string {
@@ -40,24 +60,30 @@ Your goal is to sound like a skilled professional who genuinely understands the 
 
     const title = profile.title || 'Freelancer';
 
-    // Build portfolio context if available
+    // Build portfolio context with relevance filtering
     let portfolioContext = '';
     if (profile.portfolio && profile.portfolio.length > 0) {
-      const portfolioItems = profile.portfolio
-        .slice(0, 3)
-        .map(item => `- ${item.title}${item.description ? ': ' + item.description : ''}`)
-        .join('\n');
-      portfolioContext = `\n\nRELEVANT PROJECTS:\n${portfolioItems}`;
+      const relevantPortfolios = this.filterRelevantPortfolios(profile.portfolio, jobDescription);
+      if (relevantPortfolios.length > 0) {
+        const portfolioItems = relevantPortfolios
+          .slice(0, 3) // Top 3 most relevant
+          .map(item => `- ${item.title}${item.description ? ': ' + item.description : ''}`)
+          .join('\n');
+        portfolioContext = `\n\nRELEVANT PROJECTS:\n${portfolioItems}`;
+      }
     }
 
-    // Build work history context if available
+    // Build work history context with relevance filtering
     let workHistoryContext = '';
     if (profile.workHistory && profile.workHistory.length > 0) {
-      const workItems = profile.workHistory
-        .slice(0, 3)
-        .map(item => `- ${item.title}${item.dates ? ' (' + item.dates + ')' : ''}`)
-        .join('\n');
-      workHistoryContext = `\n\nRECENT WORK:\n${workItems}`;
+      const relevantWork = this.filterRelevantWorkHistory(profile.workHistory, jobDescription);
+      if (relevantWork.length > 0) {
+        const workItems = relevantWork
+          .slice(0, 3) // Top 3 most relevant
+          .map(item => `- ${item.title}${item.dates ? ' (' + item.dates + ')' : ''}`)
+          .join('\n');
+        workHistoryContext = `\n\nRECENT WORK:\n${workItems}`;
+      }
     }
 
     const overview = profile.bio || `I'm a ${title} with ${experience} specializing in ${skills}.`;
@@ -91,6 +117,153 @@ Write a compelling job proposal that:
 Write the proposal now:`;
   }
 
+  /**
+   * Filter and rank portfolio items by relevance to job description
+   */
+  private filterRelevantPortfolios(
+    portfolios: any[],
+    jobDescription: string
+  ): any[] {
+    const jobLower = jobDescription.toLowerCase();
+    
+    // Score each portfolio item
+    const scored = portfolios.map(portfolio => {
+      let rawScore = 0;
+      let maxScore = 0;
+      
+      // Check title relevance
+      if (portfolio.title) {
+        const titleWords = portfolio.title.toLowerCase().split(/\s+/);
+        maxScore += titleWords.length * 3; // Each word could potentially match
+        titleWords.forEach((word: string) => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            rawScore += 3;
+          }
+        });
+      }
+      
+      // Check description relevance
+      if (portfolio.description) {
+        const descWords = portfolio.description.toLowerCase().split(/\s+/);
+        maxScore += descWords.length * 1; // Each word could potentially match
+        descWords.forEach((word: string) => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            rawScore += 1;
+          }
+        });
+      }
+      
+      // Check skills match (most important)
+      if (portfolio.skills && Array.isArray(portfolio.skills)) {
+        maxScore += portfolio.skills.length * 5; // Each skill could potentially match
+        portfolio.skills.forEach((skill: string) => {
+          if (jobLower.includes(skill.toLowerCase())) {
+            rawScore += 5;
+          }
+        });
+      }
+      
+      // Calculate percentage (0-100)
+      const relevancePercentage = maxScore > 0 ? Math.round((rawScore / maxScore) * 100) : 0;
+      
+      // Determine tier
+      const tier = this.getRelevanceTier(relevancePercentage);
+      
+      return { 
+        ...portfolio, 
+        relevanceScore: relevancePercentage,
+        relevanceTier: tier,
+        _rawScore: rawScore,
+        _maxScore: maxScore,
+      };
+    });
+    
+    // Filter out items with score < 20% (not relevant enough)
+    // Sort by relevance score (highest first)
+    return scored
+      .filter(p => p.relevanceScore >= 20)
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
+  }
+
+  /**
+   * Filter and rank work history by relevance to job description
+   */
+  private filterRelevantWorkHistory(
+    workHistory: any[],
+    jobDescription: string
+  ): any[] {
+    const jobLower = jobDescription.toLowerCase();
+    
+    // Score each work history item
+    const scored = workHistory.map(work => {
+      let rawScore = 0;
+      let maxScore = 0;
+      
+      // Check title relevance
+      if (work.title) {
+        const titleWords = work.title.toLowerCase().split(/\s+/);
+        maxScore += titleWords.length * 3;
+        titleWords.forEach((word: string) => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            rawScore += 3;
+          }
+        });
+      }
+      
+      // Check company relevance
+      if (work.company) {
+        const companyWords = work.company.toLowerCase().split(/\s+/);
+        maxScore += companyWords.length * 2;
+        companyWords.forEach((word: string) => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            rawScore += 2;
+          }
+        });
+      }
+      
+      // Check description relevance
+      if (work.description) {
+        const descWords = work.description.toLowerCase().split(/\s+/);
+        maxScore += descWords.length * 1;
+        descWords.forEach((word: string) => {
+          if (word.length > 3 && jobLower.includes(word)) {
+            rawScore += 1;
+          }
+        });
+      }
+      
+      // Calculate percentage (0-100)
+      const relevancePercentage = maxScore > 0 ? Math.round((rawScore / maxScore) * 100) : 0;
+      
+      // Determine tier
+      const tier = this.getRelevanceTier(relevancePercentage);
+      
+      return { 
+        ...work, 
+        relevanceScore: relevancePercentage,
+        relevanceTier: tier,
+        _rawScore: rawScore,
+        _maxScore: maxScore,
+      };
+    });
+    
+    // Filter out items with score < 20% (not relevant enough)
+    // Sort by relevance score (highest first)
+    return scored
+      .filter(w => w.relevanceScore >= 20)
+      .sort((a, b) => b.relevanceScore - a.relevanceScore);
+  }
+
+  /**
+   * Get relevance tier based on percentage score
+   */
+  private getRelevanceTier(percentage: number): string {
+    if (percentage >= 80) return 'highly_relevant';
+    if (percentage >= 50) return 'relevant';
+    if (percentage >= 20) return 'somewhat_relevant';
+    return 'not_relevant';
+  }
+
   private formatRagContextForPrompt(ragContext: RagContext): string {
     const sections: string[] = ['CONTEXT (REFERENCE MATERIAL - FOR INSPIRATION ONLY):'];
 
@@ -122,10 +295,55 @@ Write the proposal now:`;
     profile: Profile, 
     jobDescription: string, 
     ragContext?: RagContext
-  ): { system: string; user: string } {
+  ): { 
+    system: string; 
+    user: string;
+    metadata: {
+      preferencesUsed: {
+        tone?: string;
+        writingStyle?: string;
+        length?: string;
+      };
+      portfoliosUsed: any[];
+      workHistoryUsed: any[];
+    };
+  } {
+    // Extract preferences
+    const tonePreference = profile.preferences?.find(p => p.category === 'TONE');
+    const stylePreference = profile.preferences?.find(p => p.category === 'WRITING_STYLE');
+    const lengthPreference = profile.preferences?.find(p => p.category === 'LENGTH');
+
+    // Filter relevant items
+    const relevantPortfolios = profile.portfolio && profile.portfolio.length > 0
+      ? this.filterRelevantPortfolios(profile.portfolio, jobDescription).slice(0, 3)
+      : [];
+
+    const relevantWork = profile.workHistory && profile.workHistory.length > 0
+      ? this.filterRelevantWorkHistory(profile.workHistory, jobDescription).slice(0, 3)
+      : [];
+
     return {
       system: this.buildSystemPrompt(profile),
       user: this.buildUserPrompt(profile, jobDescription, ragContext),
+      metadata: {
+        preferencesUsed: {
+          tone: tonePreference?.value || profile.tone || 'professional',
+          writingStyle: stylePreference?.value || profile.writingStyle || 'clear and concise',
+          length: lengthPreference?.value || 'medium',
+        },
+        portfoliosUsed: relevantPortfolios.map(p => ({
+          id: p.id,
+          title: p.title,
+          relevanceScore: p.relevanceScore,
+          relevanceTier: p.relevanceTier,
+        })),
+        workHistoryUsed: relevantWork.map(w => ({
+          id: w.id,
+          title: w.title,
+          relevanceScore: w.relevanceScore,
+          relevanceTier: w.relevanceTier,
+        })),
+      },
     };
   }
 }

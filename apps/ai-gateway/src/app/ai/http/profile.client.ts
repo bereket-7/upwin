@@ -72,8 +72,9 @@ export class ProfileClient {
       country: profile.country,
       city: profile.city,
       avatar: profile.avatar,
-      tone: profile.defaultTone || 'professional',
-      writingStyle: profile.defaultWritingStyle || 'concise',
+      tone: profile.defaultTone || 'professional', // Deprecated fallback
+      writingStyle: profile.defaultWritingStyle || 'concise', // Deprecated fallback
+      preferences: profile.selectedPreferences || [], // New dynamic preferences
       portfolio: profile.portfolioItems || [],
       workHistory: profile.workHistory || [],
       totalEarnings: profile.totalEarnings,

@@ -41,15 +41,18 @@ export class AiStreamingService {
         );
       }
 
-      // Step 3: Build prompt
+      // Step 3: Build prompt with metadata
       this.logger.log('Building streaming prompt');
-      const { system, user } = this.promptBuilder.buildPrompt(
+      const { system, user, metadata } = this.promptBuilder.buildPrompt(
         enhancedProfile,
         jobDescription,
         ragContext
       );
 
       const fullPrompt = `${system}\n\n${user}`;
+
+      // Send metadata event first
+      this.sendMetadata(response, metadata);
 
       // Step 4: Stream from Gemini and accumulate content
       this.logger.log('Starting Gemini streaming');
@@ -191,5 +194,14 @@ export class AiStreamingService {
     response.setHeader('Connection', 'keep-alive');
     response.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
     response.flushHeaders();
+  }
+
+  private sendMetadata(response: Response, metadata: any): void {
+    try {
+      response.write(`event: metadata\n`);
+      response.write(`data: ${JSON.stringify(metadata)}\n\n`);
+    } catch (error) {
+      this.logger.error('Failed to send metadata:', error);
+    }
   }
 }
