@@ -13,6 +13,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id            String   @id @default(uuid())
   email         String   @unique
@@ -27,6 +32,7 @@ model User {
   linkedinId    String?  @unique
   provider      String?  // 'local', 'google', 'linkedin'
 
+  role          UserRole @default(USER)
   isActive      Boolean  @default(true)
   emailVerified Boolean  @default(false)
   
