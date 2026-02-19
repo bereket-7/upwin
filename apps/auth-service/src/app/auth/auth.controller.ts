@@ -63,6 +63,12 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Post('admin/login')
+  @HttpCode(HttpStatus.OK)
+  async adminLogin(@Body() loginDto: LoginDto): Promise<LoginResponse> {
+    return this.authService.adminLogin(loginDto);
+  }
+
   @Get('profile')
   @UseGuards(JwtAuthGuard)
   async getProfile(@CurrentUser() user: AuthenticatedUser): Promise<UserProfile> {

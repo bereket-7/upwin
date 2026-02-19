@@ -7,6 +7,7 @@ export interface UserProfile {
   googleId: string | null;
   linkedinId: string | null;
   provider: string | null;
+  role: string;
   isActive: boolean;
   emailVerified: boolean;
   createdAt: Date;
@@ -16,6 +17,7 @@ export interface UserProfile {
 export interface JwtPayload {
   sub: string;
   email: string;
+  role: string;
   iat?: number;
   exp?: number;
 }
@@ -23,6 +25,7 @@ export interface JwtPayload {
 export interface AuthenticatedUser {
   userId: string;
   email: string;
+  role: string;
 }
 
 export interface OAuthProfile {
