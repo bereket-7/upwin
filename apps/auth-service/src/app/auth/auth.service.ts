@@ -15,6 +15,7 @@ export interface RegisterDto {
   password: string;
   firstName: string;
   lastName: string;
+  upworkId?: string;
 }
 
 export interface OAuthUserDto {
@@ -82,7 +83,31 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
+    const expiresIn = 15 * 60; // 15 minutes in seconds
+
+    return {
+      user,
+      accessToken,
+      expiresIn,
+    };
+  }
+
+  async adminLogin(loginDto: LoginDto): Promise<LoginResponse> {
+    const { email, password } = loginDto;
+    
+    const user = await this.validateUser(email, password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Check if user is admin
+    if (user.role !== 'ADMIN') {
+      throw new UnauthorizedException('Admin access required');
+    }
+
+    const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
     const expiresIn = 15 * 60; // 15 minutes in seconds
 
@@ -94,7 +119,7 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto): Promise<RegisterResponse> {
-    const { email, password, firstName, lastName } = registerDto;
+    const { email, password, firstName, lastName, upworkId } = registerDto;
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -102,6 +127,17 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
+    }
+
+    // Check if upworkId is already taken
+    if (upworkId) {
+      const existingUpworkUser = await this.prisma.user.findUnique({
+        where: { upworkId },
+      });
+
+      if (existingUpworkUser) {
+        throw new ConflictException('User with this Upwork ID already exists');
+      }
     }
 
     const hashedPassword = await hashPassword(password);
@@ -115,6 +151,7 @@ export class AuthService {
         password: hashedPassword,
         firstName,
         lastName,
+        upworkId,
         isActive: true,
         emailVerified: false,
         verificationToken,
@@ -207,7 +244,7 @@ export class AuthService {
   }
 
   async generateTokenForUser(user: UserProfile): Promise<AuthResponse> {
-    const payload = { sub: user.id, email: user.email };
+    const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
     return { user, accessToken };
   }
