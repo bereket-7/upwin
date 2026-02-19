@@ -51,6 +51,32 @@ export class ConfigService {
     return this.get('JWT_SECRET');
   }
 
+  getJwtExpiry(): string {
+    return process.env.JWT_EXPIRY || '15m';
+  }
+
+  getJwtRefreshExpiry(): string {
+    return process.env.JWT_REFRESH_EXPIRY || '7d';
+  }
+
+  // Convert JWT expiry string to seconds (for response)
+  getJwtExpiryInSeconds(): number {
+    const expiry = this.getJwtExpiry();
+    const match = expiry.match(/^(\d+)([smhd])$/);
+    if (!match) return 900; // default 15 minutes
+    
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    
+    switch (unit) {
+      case 's': return value;
+      case 'm': return value * 60;
+      case 'h': return value * 3600;
+      case 'd': return value * 86400;
+      default: return 900;
+    }
+  }
+
   getDatabaseUrl(): string {
     return this.get('DATABASE_URL');
   }

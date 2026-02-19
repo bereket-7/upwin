@@ -17,10 +17,10 @@ import { AIPreferenceService } from './ai-preference.service';
 import { CreateAIPreferenceDto } from './dto/create-ai-preference.dto';
 import { UpdateAIPreferenceDto } from './dto/update-ai-preference.dto';
 import { QueryAIPreferenceDto } from './dto/query-ai-preference.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard, AdminGuard } from '@org/shared';
 
 @Controller('admin/ai-preferences')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class AIPreferenceController {
   private readonly logger = new Logger(AIPreferenceController.name);
 
