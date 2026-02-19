@@ -14,6 +14,18 @@ export interface UserProfile {
   updatedAt: Date;
 }
 
+// Clean DTO for login responses - only frontend-needed fields
+export interface LoginUserDto {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string | null;
+  avatarUrl: string | null;
+  upworkId: string | null;
+  role: string;
+  emailVerified: boolean;
+}
+
 export interface JwtPayload {
   sub: string;
   email: string;
