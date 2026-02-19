@@ -5,6 +5,7 @@ import { Reflector } from '@nestjs/core';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AdminSeedService } from './admin-seed.service';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
@@ -36,6 +37,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
   controllers: [AuthController],
   providers: [
     AuthService,
+    AdminSeedService,
     JwtStrategy,
     LocalStrategy,
     GoogleStrategy,
