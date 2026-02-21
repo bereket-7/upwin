@@ -8,6 +8,9 @@ on:
       - 'apps/auth-service/**'
       - 'libs/shared/**'
       - '.github/workflows/deploy-auth-service.yml'
+  
+  # Manual trigger option
+  workflow_dispatch:
 
 jobs:
   build-and-push:
