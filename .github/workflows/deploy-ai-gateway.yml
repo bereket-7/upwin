@@ -93,7 +93,7 @@ jobs:
             
             # Health check from host
             for i in {1..30}; do
-              if curl -f http://localhost:3007/health 2>/dev/null; then
+              if curl -f http://localhost:3007/api/health 2>/dev/null; then
                 echo "AI Gateway is healthy!"
                 exit 0
               fi
