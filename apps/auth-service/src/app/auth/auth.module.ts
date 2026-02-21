@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { Reflector } from '@nestjs/core';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AdminSeedService } from './admin-seed.service';
+import { SessionService } from './session.service';
+import { SessionCleanupService } from './session-cleanup.service';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
@@ -28,13 +32,16 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.getJwtSecret(),
-        signOptions: { expiresIn: '15m' },
+        signOptions: { expiresIn: configService.getJwtExpiry() as any },
       }),
     }),
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
+    AdminSeedService,
+    SessionService,
+    SessionCleanupService,
     JwtStrategy,
     LocalStrategy,
     GoogleStrategy,
@@ -43,6 +50,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
     AuthCodeService,
     TokenBlacklistService,
     JwtAuthGuard,
+    Reflector,
   ],
   exports: [AuthService],
 })

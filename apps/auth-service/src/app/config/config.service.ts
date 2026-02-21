@@ -17,7 +17,6 @@ export class ConfigService {
       'LINKEDIN_CLIENT_ID',
       'LINKEDIN_CLIENT_SECRET',
       'CALLBACK_URL',
-      'API_URL',
     ];
 
     const config: Record<string, string> = {};
@@ -31,6 +30,9 @@ export class ConfigService {
         config[varName] = value;
       }
     }
+
+    // Optional vars with defaults
+    config['API_URL'] = process.env.API_URL || 'http://localhost:3008/api';
 
     if (missing.length > 0) {
       throw new Error(
@@ -47,6 +49,32 @@ export class ConfigService {
 
   getJwtSecret(): string {
     return this.get('JWT_SECRET');
+  }
+
+  getJwtExpiry(): string {
+    return process.env.JWT_EXPIRY || '15m';
+  }
+
+  getJwtRefreshExpiry(): string {
+    return process.env.JWT_REFRESH_EXPIRY || '7d';
+  }
+
+  // Convert JWT expiry string to seconds (for response)
+  getJwtExpiryInSeconds(): number {
+    const expiry = this.getJwtExpiry();
+    const match = expiry.match(/^(\d+)([smhd])$/);
+    if (!match) return 900; // default 15 minutes
+    
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    
+    switch (unit) {
+      case 's': return value;
+      case 'm': return value * 60;
+      case 'h': return value * 3600;
+      case 'd': return value * 86400;
+      default: return 900;
+    }
   }
 
   getDatabaseUrl(): string {
@@ -94,6 +122,13 @@ export class ConfigService {
   }
 
   getSmtpFrom(): string {
+    const fromName = process.env.SMTP_FROM_NAME;
+    const fromEmail = process.env.SMTP_FROM_EMAIL;
+    
+    if (fromName && fromEmail) {
+      return `"${fromName}" <${fromEmail}>`;
+    }
+    
     return process.env.SMTP_FROM || '"Upwin Support" <noreply@upwin.com>';
   }
 

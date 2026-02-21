@@ -1,0 +1,115 @@
+name: Staging Proposal-Service
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'apps/proposal-service/**'
+      - 'libs/shared/**'
+      - '.github/workflows/deploy-proposal-service.yml'
+  
+  # Manual trigger option
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Shared Library
+        run: node libs/shared/build.js
+
+      - name: Generate Prisma Client
+        run: |
+          cd apps/proposal-service
+          npx prisma generate
+
+      - name: Build Proposal Service
+        run: npx nx build proposal-service --configuration=production
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Verify Build Output
+        run: |
+          echo "=== Checking proposal-service build output ==="
+          ls -la apps/proposal-service/dist/ || echo "apps/proposal-service/dist not found!"
+          echo ""
+          echo "=== Checking shared library ==="
+          ls -la libs/shared/dist/ || echo "libs/shared/dist not found!"
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -f apps/proposal-service/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/proposal-service:staging .
+          docker push ${{ secrets.DOCKER_USERNAME }}/proposal-service:staging
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        run: |
+          # Install sshpass for password-based SSH
+          sudo apt-get update && sudo apt-get install -y sshpass
+
+          # Deploy using SSH with password
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+            # Pull the new image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/proposal-service:staging
+            
+            # Stop and remove the existing container if it exists
+            docker stop proposal-service-staging || true
+            docker rm proposal-service-staging || true
+            
+            # Run the new container with environment variables
+            docker run -d \
+              --restart always \
+              --network host \
+              --name proposal-service-staging \
+              -e 'PORT=3010' \
+              -e 'NODE_ENV=production' \
+              -e 'DATABASE_URL=${{ secrets.PROPOSAL_DATABASE_URL }}' \
+              -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
+              -e 'ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}' \
+              -e 'AUTH_SERVICE_URL=${{ secrets.AUTH_SERVICE_URL }}' \
+              -e 'PROFILE_SERVICE_URL=${{ secrets.PROFILE_SERVICE_URL }}' \
+              -e 'AI_GATEWAY_URL=${{ secrets.AI_GATEWAY_URL }}' \
+              -e 'RATE_LIMIT_TTL=60000' \
+              -e 'RATE_LIMIT_MAX=100' \
+              ${{ secrets.DOCKER_USERNAME }}/proposal-service:staging
+            
+            # Wait for service to be ready
+            echo "Waiting for proposal-service to start..."
+            sleep 15
+            
+            # Health check from host
+            for i in {1..30}; do
+              if curl -f http://localhost:3010/health 2>/dev/null; then
+                echo "Proposal service is healthy!"
+                exit 0
+              fi
+              echo "Attempt $i: Service not ready yet..."
+              sleep 2
+            done
+            
+            echo "Service failed to start properly"
+            docker logs --tail 50 proposal-service-staging
+            exit 1
+          EOF

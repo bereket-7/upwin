@@ -17,12 +17,13 @@ import type { Response } from 'express';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 import { AuthService } from './auth.service';
-import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse } from './auth.service';
+import type { LoginDto, RegisterDto, LoginResponse, RegisterResponse, AuthResponse, RefreshTokenResponse } from './auth.service';
 import { ConfigService } from '../config/config.service';
 import { AuthCodeService } from './auth-code.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { UserProfile, AuthenticatedUser } from './auth.types';
+import { CurrentUser } from '@org/shared';
 
 @Controller('auth')
 export class AuthController {
@@ -62,21 +63,53 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Post('admin/login')
+  @HttpCode(HttpStatus.OK)
+  async adminLogin(@Body() loginDto: LoginDto): Promise<LoginResponse> {
+    return this.authService.adminLogin(loginDto);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Body('refreshToken') refreshToken: string): Promise<RefreshTokenResponse> {
+    if (!refreshToken) {
+      throw new BadRequestException('Refresh token is required');
+    }
+    return this.authService.refreshAccessToken(refreshToken);
+  }
+
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@Request() req: { user: AuthenticatedUser }): Promise<UserProfile> {
-    return this.authService.getProfile(req.user.userId);
+  async getProfile(@CurrentUser() user: AuthenticatedUser): Promise<UserProfile> {
+    return this.authService.getProfile(user.userId);
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req: { user: AuthenticatedUser; headers: { authorization?: string } }): Promise<{ message: string }> {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+  async logout(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body('refreshToken') refreshToken?: string,
+  ): Promise<{ message: string }> {
+    // Blacklist the access token
+    const token = refreshToken; // You can extract from header if needed
     if (token) {
       this.tokenBlacklistService.blacklistToken(token);
     }
+    
+    // Delete session if refresh token provided
+    if (refreshToken) {
+      return this.authService.logout(refreshToken);
+    }
+    
     return { message: 'Logged out successfully' };
+  }
+
+  @Post('logout-all')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async logoutAll(@CurrentUser() user: AuthenticatedUser): Promise<{ message: string }> {
+    return this.authService.logoutAll(user.userId);
   }
 
   @Get('google')

@@ -1,0 +1,112 @@
+name: Staging Profile-Service
+# Force rebuild with JWT_SECRET fix
+
+on:
+  # Auto-deploy when profile-service files change
+  push:
+    branches:
+      - staging
+    paths:
+      - 'apps/profile-service/**'
+      - 'libs/shared/**'
+      - '.github/workflows/deploy-profile-service.yml'
+  
+  # Manual trigger option
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Shared Library
+        run: node libs/shared/build.js
+
+      - name: Generate Prisma Client
+        run: |
+          cd apps/profile-service
+          npx prisma generate
+
+      - name: Build Profile Service
+        run: npx nx build profile-service --configuration=production
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Verify Build Output
+        run: |
+          echo "=== Checking profile-service build output ==="
+          ls -la apps/profile-service/dist/ || echo "apps/profile-service/dist not found!"
+          echo ""
+          echo "=== Checking shared library ==="
+          ls -la libs/shared/dist/ || echo "libs/shared/dist not found!"
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -f apps/profile-service/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/profile-service:staging .
+          docker push ${{ secrets.DOCKER_USERNAME }}/profile-service:staging
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        run: |
+          # Install sshpass for password-based SSH
+          sudo apt-get update && sudo apt-get install -y sshpass
+
+          # Deploy using SSH with password
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+            # Pull the new image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/profile-service:staging
+            
+            # Stop and remove the existing container if it exists
+            docker stop profile-service-staging || true
+            docker rm profile-service-staging || true
+            
+            # Run the new container with environment variables
+            docker run -d \
+              --restart always \
+              --network host \
+              --name profile-service-staging \
+              -e 'PORT=3009' \
+              -e 'NODE_ENV=production' \
+              -e 'PROFILE_DATABASE_URL=${{ secrets.PROFILE_DATABASE_URL }}' \
+              -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
+              -e 'ALLOWED_ORIGINS=*' \
+              ${{ secrets.DOCKER_USERNAME }}/profile-service:staging
+            
+            # Wait for service to be ready
+            echo "Waiting for profile-service to start..."
+            sleep 15
+            
+            # Health check from host
+            for i in {1..30}; do
+              if curl -f http://localhost:3009/health 2>/dev/null; then
+                echo "Profile service is healthy!"
+                exit 0
+              fi
+              echo "Attempt $i: Service not ready yet..."
+              sleep 2
+            done
+            
+            echo "Service failed to start properly"
+            docker logs --tail 50 profile-service-staging
+            exit 1
+          EOF

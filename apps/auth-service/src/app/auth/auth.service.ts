@@ -1,10 +1,12 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
-import * as crypto from 'crypto';
+import { hashPassword, comparePassword, generateVerificationToken, addHours } from '@org/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
-import { UserProfile } from './auth.types';
+import { ConfigService } from '../config/config.service';
+import { SessionService } from './session.service';
+import { UserProfile, LoginUserDto } from './auth.types';
+import { randomBytes } from 'crypto';
 
 export interface LoginDto {
   email: string;
@@ -16,6 +18,7 @@ export interface RegisterDto {
   password: string;
   firstName: string;
   lastName: string;
+  upworkId?: string;
 }
 
 export interface OAuthUserDto {
@@ -40,14 +43,22 @@ export interface RegisterResponse {
 }
 
 export interface LoginResponse {
-  user: UserProfile;
+  user: LoginUserDto;
   accessToken: string;
+  refreshToken: string;
   expiresIn: number;
 }
 
 export interface AuthResponse {
-  user: UserProfile;
+  user: LoginUserDto;
   accessToken: string;
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 export interface VerifyEmailDto {
@@ -60,6 +71,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
+    private readonly sessionService: SessionService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<UserProfile | null> {
@@ -67,7 +80,7 @@ export class AuthService {
       where: { email },
     });
 
-    if (user && user.password && await bcrypt.compare(password, user.password)) {
+    if (user && user.password && await comparePassword(password, user.password)) {
       const { password, ...result } = user;
       return result as UserProfile;
     }
@@ -83,19 +96,101 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    return this.generateAuthTokens(user);
+  }
+
+  async adminLogin(loginDto: LoginDto): Promise<LoginResponse> {
+    const { email, password } = loginDto;
+    
+    const user = await this.validateUser(email, password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Check if user is admin
+    if (user.role !== 'ADMIN') {
+      throw new UnauthorizedException('Admin access required');
+    }
+
+    return this.generateAuthTokens(user);
+  }
+
+  private async generateAuthTokens(user: UserProfile): Promise<LoginResponse> {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    
+    // Generate access token
     const accessToken = this.jwtService.sign(payload);
-    const expiresIn = 15 * 60; // 15 minutes in seconds
+    
+    // Generate refresh token
+    const refreshToken = this.generateRefreshToken();
+    
+    // Create session
+    await this.sessionService.createSession(user.id, accessToken, refreshToken);
+    
+    // Get expiry time
+    const expiresIn = this.configService.getJwtExpiryInSeconds();
 
     return {
-      user,
+      user: this.toLoginUserDto(user),
       accessToken,
+      refreshToken,
       expiresIn,
     };
   }
 
+  async refreshAccessToken(refreshToken: string): Promise<RefreshTokenResponse> {
+    // Find session by refresh token
+    const session = await this.sessionService.findSessionByRefreshToken(refreshToken);
+    
+    if (!session) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Check if refresh token is expired
+    if (session.refreshExpiresAt < new Date()) {
+      await this.sessionService.deleteSession(refreshToken);
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    // Generate new tokens
+    const user = session.user;
+    const payload = { sub: user.id, email: user.email, role: user.role };
+    
+    const newAccessToken = this.jwtService.sign(payload);
+    const newRefreshToken = this.generateRefreshToken();
+
+    // Delete old session and create new one
+    await this.sessionService.deleteSession(refreshToken);
+    await this.sessionService.createSession(user.id, newAccessToken, newRefreshToken);
+
+    const expiresIn = this.configService.getJwtExpiryInSeconds();
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      expiresIn,
+    };
+  }
+
+  private generateRefreshToken(): string {
+    return randomBytes(64).toString('hex');
+  }
+
+  private toLoginUserDto(user: UserProfile): LoginUserDto {
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatarUrl: user.avatarUrl,
+      upworkId: (user as any).upworkId || null,
+      role: user.role,
+      emailVerified: user.emailVerified,
+    };
+  }
+
   async register(registerDto: RegisterDto): Promise<RegisterResponse> {
-    const { email, password, firstName, lastName } = registerDto;
+    const { email, password, firstName, lastName, upworkId } = registerDto;
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -105,10 +200,21 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // Check if upworkId is already taken
+    if (upworkId) {
+      const existingUpworkUser = await this.prisma.user.findUnique({
+        where: { upworkId },
+      });
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      if (existingUpworkUser) {
+        throw new ConflictException('User with this Upwork ID already exists');
+      }
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    const verificationToken = generateVerificationToken();
+    const verificationExpires = addHours(new Date(), 24); // 24 hours
 
     const user = await this.prisma.user.create({
       data: {
@@ -116,6 +222,7 @@ export class AuthService {
         password: hashedPassword,
         firstName,
         lastName,
+        upworkId,
         isActive: true,
         emailVerified: false,
         verificationToken,
@@ -124,7 +231,22 @@ export class AuthService {
     });
 
     // Send verification email
-    await this.emailService.sendVerificationEmail(email, verificationToken);
+    try {
+      await this.emailService.sendVerificationEmail(email, verificationToken);
+    } catch (error) {
+      console.error('Failed to send verification email during registration:', error);
+      return {
+        message: 'Account created successfully, but we could not send the verification email. Please try resending it from your profile or login page.',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+        },
+      };
+    }
 
     return {
       message: 'Account created successfully. Please verify your email.',
@@ -193,9 +315,18 @@ export class AuthService {
   }
 
   async generateTokenForUser(user: UserProfile): Promise<AuthResponse> {
-    const payload = { sub: user.id, email: user.email };
+    const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
-    return { user, accessToken };
+    const refreshToken = this.generateRefreshToken();
+    
+    // Create session for OAuth users
+    await this.sessionService.createSession(user.id, accessToken, refreshToken);
+    
+    return { 
+      user: this.toLoginUserDto(user), 
+      accessToken,
+      refreshToken,
+    };
   }
 
   async getProfile(userId: string): Promise<UserProfile> {
@@ -250,8 +381,8 @@ export class AuthService {
       throw new BadRequestException('Email already verified');
     }
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const verificationToken = generateVerificationToken();
+    const verificationExpires = addHours(new Date(), 24);
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -265,5 +396,17 @@ export class AuthService {
     await this.emailService.sendVerificationEmail(email, verificationToken);
 
     return { message: 'Verification email sent' };
+  }
+
+  async logout(refreshToken: string): Promise<{ message: string }> {
+    if (refreshToken) {
+      await this.sessionService.deleteSession(refreshToken);
+    }
+    return { message: 'Logged out successfully' };
+  }
+
+  async logoutAll(userId: string): Promise<{ message: string }> {
+    await this.sessionService.deleteUserSessions(userId);
+    return { message: 'Logged out from all devices' };
   }
 }

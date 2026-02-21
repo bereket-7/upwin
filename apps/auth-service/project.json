@@ -5,40 +5,15 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/webpack:webpack",
-      "outputs": ["{options.outputPath}"],
-      "defaultConfiguration": "production",
+      "executor": "nx:run-commands",
       "options": {
-        "target": "node",
-        "compiler": "tsc",
-        "outputPath": "dist/apps/auth-service",
-        "main": "apps/auth-service/src/main.ts",
-        "tsConfig": "apps/auth-service/tsconfig.app.json",
-        "assets": ["apps/auth-service/src/assets"],
-        "webpackConfig": "apps/auth-service/webpack.config.js"
+        "command": "webpack-cli build",
+        "args": ["--node-env=production"],
+        "cwd": "apps/auth-service"
       },
       "configurations": {
         "development": {
-          "optimization": false,
-          "extractLicenses": false,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "apps/auth-service/src/environments/environment.ts",
-              "with": "apps/auth-service/src/environments/environment.development.ts"
-            }
-          ]
-        },
-        "production": {
-          "optimization": true,
-          "extractLicenses": true,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "apps/auth-service/src/environments/environment.ts",
-              "with": "apps/auth-service/src/environments/environment.production.ts"
-            }
-          ]
+          "args": ["--node-env=development"]
         }
       }
     },
