@@ -76,8 +76,7 @@ jobs:
             # Run the new container with environment variables
             docker run -d \
               --restart always \
-              -p 3007:3007 \
-              --add-host host.docker.internal:host-gateway \
+              --network host \
               --name ai-gateway-staging \
               -e 'PORT=3007' \
               -e 'NODE_ENV=production' \
@@ -91,11 +90,11 @@ jobs:
             
             # Wait for service to be ready
             echo "Waiting for ai-gateway to start..."
-            sleep 10
+            sleep 15
             
-            # Health check
+            # Health check from host
             for i in {1..30}; do
-              if docker exec ai-gateway-staging curl -f http://localhost:3007/health 2>/dev/null; then
+              if curl -f http://localhost:3007/health 2>/dev/null; then
                 echo "AI Gateway is healthy!"
                 exit 0
               fi
@@ -104,6 +103,6 @@ jobs:
             done
             
             echo "Service failed to start properly"
-            docker logs ai-gateway-staging
+            docker logs --tail 50 ai-gateway-staging
             exit 1
           EOF

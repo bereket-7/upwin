@@ -81,8 +81,7 @@ jobs:
             # Run the new container with environment variables
             docker run -d \
               --restart always \
-              -p 3010:3010 \
-              --add-host host.docker.internal:host-gateway \
+              --network host \
               --name proposal-service-staging \
               -e 'PORT=3010' \
               -e 'NODE_ENV=production' \
@@ -98,11 +97,11 @@ jobs:
             
             # Wait for service to be ready
             echo "Waiting for proposal-service to start..."
-            sleep 10
+            sleep 15
             
-            # Health check
+            # Health check from host
             for i in {1..30}; do
-              if docker exec proposal-service-staging curl -f http://localhost:3010/health 2>/dev/null; then
+              if curl -f http://localhost:3010/health 2>/dev/null; then
                 echo "Proposal service is healthy!"
                 exit 0
               fi
@@ -111,6 +110,6 @@ jobs:
             done
             
             echo "Service failed to start properly"
-            docker logs proposal-service-staging
+            docker logs --tail 50 proposal-service-staging
             exit 1
           EOF
