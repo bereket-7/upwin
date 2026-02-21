@@ -83,8 +83,7 @@ jobs:
             # Run the new container with environment variables
             docker run -d \
               --restart always \
-              -p 3009:3009 \
-              --add-host host.docker.internal:host-gateway \
+              --network host \
               --name profile-service-staging \
               -e 'PORT=3009' \
               -e 'NODE_ENV=production' \
@@ -95,11 +94,11 @@ jobs:
             
             # Wait for service to be ready
             echo "Waiting for profile-service to start..."
-            sleep 10
+            sleep 15
             
-            # Health check
+            # Health check from host
             for i in {1..30}; do
-              if docker exec profile-service-staging curl -f http://localhost:3009/health 2>/dev/null; then
+              if curl -f http://localhost:3009/health 2>/dev/null; then
                 echo "Profile service is healthy!"
                 exit 0
               fi
@@ -108,6 +107,6 @@ jobs:
             done
             
             echo "Service failed to start properly"
-            docker logs profile-service-staging
+            docker logs --tail 50 profile-service-staging
             exit 1
           EOF

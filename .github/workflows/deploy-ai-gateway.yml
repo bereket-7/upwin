@@ -61,11 +61,13 @@ jobs:
     steps:
       - name: Deploy to VPS
         run: |
-          # Install sshpass for password-based SSH
-          sudo apt-get update && sudo apt-get install -y sshpass
+          # Setup SSH key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
 
-          # Deploy using SSH with password
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+          # Deploy using SSH with key
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
             # Pull the new image
             docker pull ${{ secrets.DOCKER_USERNAME }}/ai-gateway:staging
             
@@ -76,8 +78,7 @@ jobs:
             # Run the new container with environment variables
             docker run -d \
               --restart always \
-              -p 3007:3007 \
-              --add-host host.docker.internal:host-gateway \
+              --network host \
               --name ai-gateway-staging \
               -e 'PORT=3007' \
               -e 'NODE_ENV=production' \
@@ -86,16 +87,15 @@ jobs:
               -e 'GOOGLE_AI_API_KEY=${{ secrets.GOOGLE_AI_API_KEY }}' \
               -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
               -e 'ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}' \
-              -e 'AI_GATEWAY_DATABASE_URL=${{ secrets.AI_GATEWAY_DATABASE_URL }}' \
               ${{ secrets.DOCKER_USERNAME }}/ai-gateway:staging
             
             # Wait for service to be ready
             echo "Waiting for ai-gateway to start..."
-            sleep 10
+            sleep 15
             
-            # Health check
+            # Health check from host
             for i in {1..30}; do
-              if docker exec ai-gateway-staging curl -f http://localhost:3007/health 2>/dev/null; then
+              if curl -f http://localhost:3007/health 2>/dev/null; then
                 echo "AI Gateway is healthy!"
                 exit 0
               fi
@@ -104,6 +104,6 @@ jobs:
             done
             
             echo "Service failed to start properly"
-            docker logs ai-gateway-staging
+            docker logs --tail 50 ai-gateway-staging
             exit 1
           EOF
