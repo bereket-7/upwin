@@ -92,4 +92,22 @@ jobs:
               -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
               -e 'ALLOWED_ORIGINS=*' \
               ${{ secrets.DOCKER_USERNAME }}/profile-service:staging
+            
+            # Wait for service to be ready
+            echo "Waiting for profile-service to start..."
+            sleep 10
+            
+            # Health check
+            for i in {1..30}; do
+              if docker exec profile-service-staging curl -f http://localhost:3009/health 2>/dev/null; then
+                echo "Profile service is healthy!"
+                exit 0
+              fi
+              echo "Attempt $i: Service not ready yet..."
+              sleep 2
+            done
+            
+            echo "Service failed to start properly"
+            docker logs profile-service-staging
+            exit 1
           EOF

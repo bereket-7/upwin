@@ -109,4 +109,22 @@ jobs:
               -e 'SMTP_FROM_NAME=${{ secrets.SMTP_FROM_NAME }}' \
               -e 'SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}' \
               ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
+            
+            # Wait for service to be ready
+            echo "Waiting for auth-service to start..."
+            sleep 10
+            
+            # Health check
+            for i in {1..30}; do
+              if docker exec auth-service-staging curl -f http://localhost:3008/health 2>/dev/null; then
+                echo "Auth service is healthy!"
+                exit 0
+              fi
+              echo "Attempt $i: Service not ready yet..."
+              sleep 2
+            done
+            
+            echo "Service failed to start properly"
+            docker logs auth-service-staging
+            exit 1
           EOF
