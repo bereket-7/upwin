@@ -91,9 +91,9 @@ jobs:
             echo "Waiting for ai-gateway to start..."
             sleep 15
             
-            # Health check from host
+            # Health check from host (using root endpoint)
             for i in {1..30}; do
-              if curl -f http://localhost:3007/api/health 2>/dev/null; then
+              if curl -f http://localhost:3007/api 2>/dev/null; then
                 echo "AI Gateway is healthy!"
                 exit 0
               fi
