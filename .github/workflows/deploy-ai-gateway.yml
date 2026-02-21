@@ -82,7 +82,7 @@ jobs:
               -e 'NODE_ENV=production' \
               -e 'QDRANT_URL=${{ secrets.QDRANT_URL }}' \
               -e 'QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY }}' \
-              -e 'GOOGLE_AI_API_KEY=${{ secrets.GOOGLE_AI_API_KEY }}' \
+              -e 'GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}' \
               -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
               -e 'ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}' \
               ${{ secrets.DOCKER_USERNAME }}/ai-gateway:staging
