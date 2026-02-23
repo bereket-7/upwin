@@ -24,10 +24,23 @@ export const generateApiKey = (): string => {
 };
 
 /**
+ * Generate a 6-digit One-Time Password (OTP).
+ * @param length - Number of digits (default: 6)
+ */
+export const generateOTP = (length: number = 6): string => {
+  const digits = '0123456789';
+  let otp = '';
+  for (let i = 0; i < length; i++) {
+    otp += digits[Math.floor(Math.random() * 10)];
+  }
+  return otp;
+};
+
+/**
  * Generate a verification token for email verification.
  */
 export const generateVerificationToken = (): string => {
-  return generateSecureToken(32);
+  return generateOTP(6);
 };
 
 /**
