@@ -39,11 +39,11 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
-  @Get('verify-email')
+  @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  async verifyEmail(@Query('token') token: string): Promise<{ message: string }> {
+  async verifyEmail(@Body('token') token: string): Promise<{ message: string }> {
     if (!token) {
-      throw new BadRequestException('Token is required');
+      throw new BadRequestException('Verification code is required');
     }
     return this.authService.verifyEmail(token);
   }
