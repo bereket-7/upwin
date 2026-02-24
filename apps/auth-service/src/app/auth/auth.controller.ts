@@ -41,11 +41,14 @@ export class AuthController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  async verifyEmail(@Body('token') token: string): Promise<{ message: string }> {
-    if (!token) {
-      throw new BadRequestException('Verification code is required');
+  async verifyEmail(
+    @Body('email') email: string,
+    @Body('otp') otp: string
+  ): Promise<{ message: string }> {
+    if (!email || !otp) {
+      throw new BadRequestException('Email and verification code (OTP) are required');
     }
-    return this.authService.verifyEmail(token);
+    return this.authService.verifyEmail(email, otp);
   }
 
   @Post('resend-verification')
