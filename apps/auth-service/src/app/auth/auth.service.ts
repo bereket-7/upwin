@@ -398,6 +398,10 @@ export class AuthService {
     return { message: 'Verification email sent' };
   }
 
+  async resendOtp(email: string): Promise<{ message: string }> {
+    return this.resendVerification(email);
+  }
+
   async logout(refreshToken: string): Promise<{ message: string }> {
     if (refreshToken) {
       await this.sessionService.deleteSession(refreshToken);
