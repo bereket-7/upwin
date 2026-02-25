@@ -5,7 +5,7 @@ import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { ImportUpworkDto } from './dto/import-upwork.dto';
 import { PaginationDto } from './dto/pagination.dto';
-import { PortfolioType } from '../../generated/prisma';
+import { PortfolioType, TailoringLevel } from '../../generated/prisma';
 
 @Injectable()
 export class ProfileService {
@@ -480,5 +480,26 @@ export class ProfileService {
     }
 
     return this.getProfileWithPreferences(userId);
+  }
+
+  /**
+   * Update tailoring level directly on profile
+   */
+  async updateTailoring(userId: string, level: TailoringLevel) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.profile.update({
+      where: { id: profile.id },
+      data: { tailoring: level },
+      include: {
+        preferences: {
+          include: {
+            preference: true,
+          },
+        },
+        portfolioItems: true,
+        workHistory: true,
+      },
+    });
   }
 }
