@@ -52,6 +52,7 @@ model Profile {
   preferences       ProfilePreference[]
   portfolioItems    PortfolioItem[]
   workHistory       WorkHistoryItem[]
+  aiHooks           AIHook[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -111,6 +112,7 @@ model AIPreference {
   
   // Many-to-many relation
   profiles    ProfilePreference[]
+  aiHooks     AIHook[]
   
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
@@ -132,4 +134,22 @@ model ProfilePreference {
   @@unique([profileId, preferenceId])
   @@index([profileId])
   @@index([preferenceId])
+}
+
+model AIHook {
+  id           String       @id @default(uuid())
+  title        String       // Brief title for the hook (e.g., "Standard Intro")
+  text         String       // The actual hook/intro text
+  preferenceId String       // FK to AIPreference (specifically TONE category)
+  profileId    String?      // FK to Profile (null for system hooks)
+  isSystem     Boolean      @default(false)
+
+  preference   AIPreference @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  profile      Profile?     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([preferenceId])
+  @@index([profileId])
 }
