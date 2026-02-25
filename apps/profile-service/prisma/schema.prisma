@@ -15,6 +15,12 @@ enum PortfolioType {
   UPWORK_IMPORT
 }
 
+enum TailoringLevel {
+  LIGHT
+  BALANCED
+  DEEP
+}
+
 enum PreferenceCategory {
   TONE
   WRITING_STYLE
@@ -38,6 +44,9 @@ model Profile {
   hourlyRate    Float?
   experienceYrs Int?
   skills        String[]
+  
+  // Tailoring preference
+  tailoring     TailoringLevel @default(BALANCED)
   
   // Upwork-specific
   upworkId      String?   @unique
