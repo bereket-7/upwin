@@ -19,6 +19,8 @@ import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { PaginationDto } from './dto/pagination.dto';
 import { ImportUpworkDto } from './dto/import-upwork.dto';
 import { UpdateProfilePreferencesDto, AddProfilePreferenceDto } from './dto/update-profile-preferences.dto';
+import { UpdateTailoringDto } from './dto/update-tailoring.dto';
+import { TailoringLevel } from '../../generated/prisma';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('profile')
@@ -41,6 +43,15 @@ export class ProfileController {
     @Body() updateProfileDto: UpdateProfileDto
   ) {
     return this.profileService.updateProfile(userId, updateProfileDto);
+  }
+
+  @Patch('tailoring')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateTailoring(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateTailoringDto
+  ) {
+    return this.profileService.updateTailoring(userId, dto.level);
   }
 
   @Post('import')
