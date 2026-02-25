@@ -25,7 +25,9 @@ import { ConfigService } from '../config/config.service';
           from: configService.getSmtpFrom(),
         },
         template: {
-          dir: join(__dirname, '..', '..', 'assets', 'templates'),
+          dir: process.env.NODE_ENV === 'production'
+            ? join(process.cwd(), 'assets', 'templates')
+            : join(__dirname, '..', '..', 'assets', 'templates'),
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,
