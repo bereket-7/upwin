@@ -27,6 +27,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        education: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
 
@@ -42,6 +47,11 @@ export class ProfileService {
           },
           portfolioItems: true,
           workHistory: true,
+          education: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
         },
       });
     }
@@ -76,7 +86,7 @@ export class ProfileService {
    * Creates profile if doesn't exist, adds Upwork portfolio items
    */
   async importFromUpwork(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -148,6 +158,32 @@ export class ProfileService {
       });
     }
 
+    // Add education items
+    if (education && education.length > 0) {
+      // Normalize and deduplicate education entries
+      const normalizedEducation = education.map(item => ({
+        school: item.school.trim(),
+        degree: item.degree.trim(),
+        dates: item.dates?.trim(),
+        fieldOfStudy: item.fieldOfStudy?.trim(),
+        description: item.description?.trim(),
+        profileId: profile.id,
+      }));
+
+      // Remove duplicates based on school, degree, and dates
+      const uniqueEducation = normalizedEducation.filter((item, index, self) =>
+        index === self.findIndex((t) => (
+          t.school === item.school && 
+          t.degree === item.degree && 
+          t.dates === item.dates
+        ))
+      );
+
+      await this.prisma.educationItem.createMany({
+        data: uniqueEducation,
+      });
+    }
+
     // Return updated profile with all relations
     return this.prisma.profile.findUnique({
       where: { id: profile.id },
@@ -159,6 +195,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        education: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
   }
@@ -168,7 +209,7 @@ export class ProfileService {
    * Custom portfolio items are not affected
    */
   async syncAllUpworkData(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -215,6 +256,12 @@ export class ProfileService {
       },
     });
 
+    await this.prisma.educationItem.deleteMany({
+      where: {
+        profileId: profile.id,
+      },
+    });
+
     // Add new portfolio items
     if (portfolioItems && portfolioItems.length > 0) {
       await this.prisma.portfolioItem.createMany({
@@ -236,6 +283,32 @@ export class ProfileService {
       });
     }
 
+    // Add new education items
+    if (education && education.length > 0) {
+      // Normalize and deduplicate education entries
+      const normalizedEducation = education.map(item => ({
+        school: item.school.trim(),
+        degree: item.degree.trim(),
+        dates: item.dates?.trim(),
+        fieldOfStudy: item.fieldOfStudy?.trim(),
+        description: item.description?.trim(),
+        profileId: profile.id,
+      }));
+
+      // Remove duplicates based on school, degree, and dates
+      const uniqueEducation = normalizedEducation.filter((item, index, self) =>
+        index === self.findIndex((t) => (
+          t.school === item.school && 
+          t.degree === item.degree && 
+          t.dates === item.dates
+        ))
+      );
+
+      await this.prisma.educationItem.createMany({
+        data: uniqueEducation,
+      });
+    }
+
     // Return updated profile with all relations
     return this.prisma.profile.findUnique({
       where: { id: profile.id },
@@ -247,6 +320,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        education: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
   }
@@ -378,6 +456,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        education: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
 
