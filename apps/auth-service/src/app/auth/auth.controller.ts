@@ -25,6 +25,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import * as AuthTypes from './auth.types';
 import { CurrentUser } from '@org/shared';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Patch, Delete } from '@nestjs/common';
 
 @Controller('auth')
@@ -209,5 +210,15 @@ export class AuthController {
     @CurrentUser() user: AuthTypes.AuthenticatedUser
   ): Promise<AuthTypes.UserProfile> {
     return this.authService.deleteAvatar(user.userId);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @CurrentUser() user: AuthTypes.AuthenticatedUser,
+    @Body() dto: ChangePasswordDto
+  ): Promise<{ message: string }> {
+    return this.authService.changePassword(user.userId, dto.oldPassword, dto.newPassword);
   }
 }
