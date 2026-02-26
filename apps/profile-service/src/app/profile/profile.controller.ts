@@ -22,6 +22,10 @@ import { UpdateProfilePreferencesDto, AddProfilePreferenceDto } from './dto/upda
 import { UpdateTailoringDto } from './dto/update-tailoring.dto';
 import { CreateEducationDto } from './dto/create-education.dto';
 import { UpdateEducationDto } from './dto/update-education.dto';
+import { CreateWorkHistoryDto } from './dto/create-work-history.dto';
+import { UpdateWorkHistoryDto } from './dto/update-work-history.dto';
+import { CreateCertificateDto } from './dto/create-certificate.dto';
+import { UpdateCertificateDto } from './dto/update-certificate.dto';
 import { TailoringLevel } from '../../generated/prisma';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -210,5 +214,95 @@ export class ProfileController {
     @CurrentUser('userId') userId: string
   ) {
     return this.profileService.deleteEducation(userId, id);
+  }
+
+  // ==================== WORK HISTORY ENDPOINTS ====================
+
+  @Post('work-history')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createWorkHistory(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateWorkHistoryDto
+  ) {
+    return this.profileService.createWorkHistory(userId, dto);
+  }
+
+  @Get('work-history')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getWorkHistory(@CurrentUser('userId') userId: string) {
+    return this.profileService.getWorkHistory(userId);
+  }
+
+  @Get('work-history/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getWorkHistoryItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getWorkHistoryItem(userId, id);
+  }
+
+  @Patch('work-history/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateWorkHistory(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateWorkHistoryDto
+  ) {
+    return this.profileService.updateWorkHistory(userId, id, dto);
+  }
+
+  @Delete('work-history/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteWorkHistory(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteWorkHistory(userId, id);
+  }
+
+  // ==================== CERTIFICATE ENDPOINTS ====================
+
+  @Post('certificates')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createCertificate(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateCertificateDto
+  ) {
+    return this.profileService.createCertificate(userId, dto);
+  }
+
+  @Get('certificates')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getCertificates(@CurrentUser('userId') userId: string) {
+    return this.profileService.getCertificates(userId);
+  }
+
+  @Get('certificates/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getCertificateItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getCertificateItem(userId, id);
+  }
+
+  @Patch('certificates/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateCertificate(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateCertificateDto
+  ) {
+    return this.profileService.updateCertificate(userId, id, dto);
+  }
+
+  @Delete('certificates/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteCertificate(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteCertificate(userId, id);
   }
 }
