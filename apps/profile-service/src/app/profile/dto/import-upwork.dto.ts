@@ -2,6 +2,7 @@ import { IsString, IsOptional, IsArray, IsNumber, IsInt, ValidateNested } from '
 import { Type } from 'class-transformer';
 import { PortfolioItemDto } from './portfolio-item.dto';
 import { WorkHistoryItemDto } from './work-history-item.dto';
+import { EducationItemDto } from './education-item.dto';
 
 export class ImportUpworkDto {
   // Profile fields
@@ -78,4 +79,10 @@ export class ImportUpworkDto {
   @Type(() => WorkHistoryItemDto)
   @IsOptional()
   workHistory?: WorkHistoryItemDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EducationItemDto)
+  @IsOptional()
+  education?: EducationItemDto[];
 }
