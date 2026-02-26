@@ -61,6 +61,8 @@ model Profile {
   preferences       ProfilePreference[]
   portfolioItems    PortfolioItem[]
   workHistory       WorkHistoryItem[]
+  education         EducationItem[]
+  certificates      CertificateItem[]
   aiHooks           AIHook[]
 
   createdAt     DateTime @default(now())
@@ -105,6 +107,42 @@ model WorkHistoryItem {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
+}
+
+model EducationItem {
+  id           String   @id @default(uuid())
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  school       String
+  degree       String
+  dates        String?
+  fieldOfStudy String?
+  description  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([profileId])
+}
+
+model CertificateItem {
+  id           String   @id @default(uuid())
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  name         String
+  issuer       String?
+  issueDate    String?
+  expiryDate   String?
+  credentialId String?
+  url          String?
+  description  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([profileId])
 }
