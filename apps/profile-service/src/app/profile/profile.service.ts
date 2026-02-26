@@ -77,6 +77,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        education: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
   }
@@ -582,6 +587,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        education: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
   }
