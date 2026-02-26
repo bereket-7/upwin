@@ -413,4 +413,24 @@ export class AuthService {
     await this.sessionService.deleteUserSessions(userId);
     return { message: 'Logged out from all devices' };
   }
+
+  async updateAvatar(userId: string, avatarUrl: string): Promise<UserProfile> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl },
+    });
+
+    const { password, ...result } = user;
+    return result as UserProfile;
+  }
+
+  async deleteAvatar(userId: string): Promise<UserProfile> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: null },
+    });
+
+    const { password, ...result } = user;
+    return result as UserProfile;
+  }
 }
