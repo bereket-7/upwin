@@ -20,6 +20,8 @@ import { PaginationDto } from './dto/pagination.dto';
 import { ImportUpworkDto } from './dto/import-upwork.dto';
 import { UpdateProfilePreferencesDto, AddProfilePreferenceDto } from './dto/update-profile-preferences.dto';
 import { UpdateTailoringDto } from './dto/update-tailoring.dto';
+import { CreateEducationDto } from './dto/create-education.dto';
+import { UpdateEducationDto } from './dto/update-education.dto';
 import { TailoringLevel } from '../../generated/prisma';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -163,5 +165,50 @@ export class ProfileController {
     @CurrentUser('userId') userId: string
   ) {
     return this.profileService.removePreference(userId, preferenceId);
+  }
+
+  // ==================== EDUCATION ENDPOINTS ====================
+
+  @Post('education')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createEducation(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateEducationDto
+  ) {
+    return this.profileService.createEducation(userId, dto);
+  }
+
+  @Get('education')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getEducation(@CurrentUser('userId') userId: string) {
+    return this.profileService.getEducation(userId);
+  }
+
+  @Get('education/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getEducationItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getEducationItem(userId, id);
+  }
+
+  @Patch('education/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateEducation(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateEducationDto
+  ) {
+    return this.profileService.updateEducation(userId, id, dto);
+  }
+
+  @Delete('education/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteEducation(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteEducation(userId, id);
   }
 }
