@@ -32,6 +32,8 @@
     "apps/auth-service-e2e",
     "apps/profile-service",
     "apps/profile-service-e2e",
+    "apps/proposal-service",
+    "apps/proposal-service-e2e",
     "apps/ai-gateway",
     "libs/*"
   ],

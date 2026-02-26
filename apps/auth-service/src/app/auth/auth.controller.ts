@@ -39,13 +39,16 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
-  @Get('verify-email')
+  @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  async verifyEmail(@Query('token') token: string): Promise<{ message: string }> {
-    if (!token) {
-      throw new BadRequestException('Token is required');
+  async verifyEmail(
+    @Body('email') email: string,
+    @Body('otp') otp: string
+  ): Promise<{ message: string }> {
+    if (!email || !otp) {
+      throw new BadRequestException('Email and verification code (OTP) are required');
     }
-    return this.authService.verifyEmail(token);
+    return this.authService.verifyEmail(email, otp);
   }
 
   @Post('resend-verification')
@@ -55,6 +58,15 @@ export class AuthController {
       throw new BadRequestException('Email is required');
     }
     return this.authService.resendVerification(email);
+  }
+
+  @Post('resend-otp')
+  @HttpCode(HttpStatus.OK)
+  async resendOtp(@Body('email') email: string): Promise<{ message: string }> {
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    return this.authService.resendOtp(email);
   }
 
   @Post('login')

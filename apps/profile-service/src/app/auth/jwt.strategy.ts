@@ -6,11 +6,13 @@ import { ConfigService } from '../config/config.service';
 export interface JwtPayload {
   sub: string;
   email: string;
+  role?: string;
 }
 
 export interface AuthenticatedUser {
   userId: string;
   email: string;
+  role?: string;
 }
 
 @Injectable()
@@ -24,6 +26,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<AuthenticatedUser> {
-    return { userId: payload.sub, email: payload.email };
+    return { 
+      userId: payload.sub, 
+      email: payload.email,
+      role: payload.role 
+    };
   }
 }

@@ -1,6 +1,16 @@
 import { PrismaClient, PreferenceCategory } from '../src/generated/prisma';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-const prisma = new PrismaClient();
+// Load environment variables from .env file
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+const connectionString = process.env.PROFILE_DATABASE_URL;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 const initialPreferences = [
   // Tones

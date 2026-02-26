@@ -62,7 +62,8 @@ export interface RefreshTokenResponse {
 }
 
 export interface VerifyEmailDto {
-  token: string;
+  email: string;
+  otp: string;
 }
 
 @Injectable()
@@ -342,18 +343,17 @@ export class AuthService {
     return result as UserProfile;
   }
 
-  async verifyEmail(token: string): Promise<{ message: string }> {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        verificationToken: token,
-        verificationExpires: {
-          gt: new Date(),
-        },
-      },
+  async verifyEmail(email: string, otp: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
     });
 
-    if (!user) {
-      throw new BadRequestException('Invalid or expired verification token');
+    if (!user || user.verificationToken !== otp) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    if (user.verificationExpires && user.verificationExpires < new Date()) {
+      throw new BadRequestException('Verification code has expired');
     }
 
     await this.prisma.user.update({
@@ -396,6 +396,10 @@ export class AuthService {
     await this.emailService.sendVerificationEmail(email, verificationToken);
 
     return { message: 'Verification email sent' };
+  }
+
+  async resendOtp(email: string): Promise<{ message: string }> {
+    return this.resendVerification(email);
   }
 
   async logout(refreshToken: string): Promise<{ message: string }> {

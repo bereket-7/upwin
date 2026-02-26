@@ -82,7 +82,7 @@ jobs:
               -e 'NODE_ENV=production' \
               -e 'QDRANT_URL=${{ secrets.QDRANT_URL }}' \
               -e 'QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY }}' \
-              -e 'GOOGLE_AI_API_KEY=${{ secrets.GOOGLE_AI_API_KEY }}' \
+              -e 'GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}' \
               -e 'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
               -e 'ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}' \
               ${{ secrets.DOCKER_USERNAME }}/ai-gateway:staging
@@ -91,9 +91,9 @@ jobs:
             echo "Waiting for ai-gateway to start..."
             sleep 15
             
-            # Health check from host
+            # Health check from host (using root endpoint)
             for i in {1..30}; do
-              if curl -f http://localhost:3007/health 2>/dev/null; then
+              if curl -f http://localhost:3007/api 2>/dev/null; then
                 echo "AI Gateway is healthy!"
                 exit 0
               fi
