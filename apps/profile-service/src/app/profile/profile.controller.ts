@@ -29,7 +29,7 @@ import { UpdateCertificateDto } from './dto/update-certificate.dto';
 import { TailoringLevel } from '../../generated/prisma';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Controller('profile')
+@Controller()
 @UseGuards(JwtAuthGuard)
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
