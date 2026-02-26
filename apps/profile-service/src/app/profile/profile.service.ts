@@ -595,4 +595,90 @@ export class ProfileService {
       },
     });
   }
+
+  // ==================== EDUCATION OPERATIONS ====================
+
+  /**
+   * Create a new education entry
+   */
+  async createEducation(userId: string, dto: any) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    // Normalize data
+    const normalizedData = {
+      school: dto.school.trim(),
+      degree: dto.degree.trim(),
+      dates: dto.dates?.trim(),
+      fieldOfStudy: dto.fieldOfStudy?.trim(),
+      description: dto.description?.trim(),
+      profileId: profile.id,
+    };
+
+    return this.prisma.educationItem.create({
+      data: normalizedData,
+    });
+  }
+
+  /**
+   * Get all education entries for a user
+   */
+  async getEducation(userId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.educationItem.findMany({
+      where: { profileId: profile.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Get a single education entry
+   */
+  async getEducationItem(userId: string, educationId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    const education = await this.prisma.educationItem.findUnique({
+      where: { id: educationId },
+    });
+
+    if (!education || education.profileId !== profile.id) {
+      throw new NotFoundException('Education entry not found');
+    }
+
+    return education;
+  }
+
+  /**
+   * Update an education entry
+   */
+  async updateEducation(userId: string, educationId: string, dto: any) {
+    await this.getEducationItem(userId, educationId);
+
+    // Normalize data
+    const normalizedData: any = {};
+    if (dto.school) normalizedData.school = dto.school.trim();
+    if (dto.degree) normalizedData.degree = dto.degree.trim();
+    if (dto.dates !== undefined) normalizedData.dates = dto.dates?.trim();
+    if (dto.fieldOfStudy !== undefined) normalizedData.fieldOfStudy = dto.fieldOfStudy?.trim();
+    if (dto.description !== undefined) normalizedData.description = dto.description?.trim();
+
+    return this.prisma.educationItem.update({
+      where: { id: educationId },
+      data: normalizedData,
+    });
+  }
+
+  /**
+   * Delete an education entry
+   */
+  async deleteEducation(userId: string, educationId: string) {
+    await this.getEducationItem(userId, educationId);
+
+    await this.prisma.educationItem.delete({
+      where: { id: educationId },
+    });
+
+    return { message: 'Education entry deleted successfully' };
+  }
 }
+
