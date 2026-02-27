@@ -136,7 +136,7 @@ export class ProfileService {
    * Creates profile if doesn't exist, adds Upwork portfolio items
    */
   async importFromUpwork(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, certificates, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -264,6 +264,23 @@ export class ProfileService {
       });
     }
 
+    // Add certificate items
+    if (certificates && certificates.length > 0) {
+      await this.prisma.certificateItem.createMany({
+        data: certificates.map(item => ({
+          ...item,
+          name: item.name.trim(),
+          issuer: item.issuer?.trim(),
+          issueDate: item.issueDate?.trim(),
+          expiryDate: item.expiryDate?.trim(),
+          credentialId: item.credentialId?.trim(),
+          url: item.url?.trim(),
+          description: item.description?.trim(),
+          profileId: profile.id,
+        })),
+      });
+    }
+
     // Return updated profile with all relations
     return this.prisma.profile.findUnique({
       where: { id: profile.id },
@@ -304,7 +321,7 @@ export class ProfileService {
    * Custom portfolio items are not affected
    */
   async syncAllUpworkData(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, certificates, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -365,6 +382,12 @@ export class ProfileService {
     });
 
     await this.prisma.languageItem.deleteMany({
+      where: {
+        profileId: profile.id,
+      },
+    });
+
+    await this.prisma.certificateItem.deleteMany({
       where: {
         profileId: profile.id,
       },
@@ -440,6 +463,23 @@ export class ProfileService {
           ...item,
           language: item.language.trim(),
           level: item.level.trim(),
+          profileId: profile.id,
+        })),
+      });
+    }
+
+    // Add new certificate items
+    if (certificates && certificates.length > 0) {
+      await this.prisma.certificateItem.createMany({
+        data: certificates.map(item => ({
+          ...item,
+          name: item.name.trim(),
+          issuer: item.issuer?.trim(),
+          issueDate: item.issueDate?.trim(),
+          expiryDate: item.expiryDate?.trim(),
+          credentialId: item.credentialId?.trim(),
+          url: item.url?.trim(),
+          description: item.description?.trim(),
           profileId: profile.id,
         })),
       });
