@@ -143,6 +143,17 @@ export class ProfileService {
       where: { userId },
     });
 
+    // Check if upworkId is already used by another profile
+    if (upworkId) {
+      const existingUpworkProfile = await this.prisma.profile.findUnique({
+        where: { upworkId },
+      });
+
+      if (existingUpworkProfile && existingUpworkProfile.userId !== userId) {
+        throw new ConflictException('This Upwork ID is already associated with another profile');
+      }
+    }
+
     if (!profile) {
       // Create profile with Upwork data
       profile = await this.prisma.profile.create({
@@ -331,6 +342,17 @@ export class ProfileService {
     if (!profile) {
       // If no profile exists, create it with the Upwork data
       return this.importFromUpwork(userId, upworkData);
+    }
+
+    // Check if upworkId is already used by another profile
+    if (upworkId) {
+      const existingUpworkProfile = await this.prisma.profile.findUnique({
+        where: { upworkId },
+      });
+
+      if (existingUpworkProfile && existingUpworkProfile.userId !== userId) {
+        throw new ConflictException('This Upwork ID is already associated with another profile');
+      }
     }
 
     // Update profile with latest Upwork data
