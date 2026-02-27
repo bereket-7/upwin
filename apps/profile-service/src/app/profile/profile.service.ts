@@ -42,6 +42,11 @@ export class ProfileService {
             createdAt: 'desc',
           },
         },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
 
@@ -70,6 +75,11 @@ export class ProfileService {
           certificates: {
             orderBy: {
               createdAt: 'desc',
+            },
+          },
+          languages: {
+            orderBy: {
+              createdAt: 'asc',
             },
           },
         },
@@ -112,6 +122,11 @@ export class ProfileService {
             createdAt: 'desc',
           },
         },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
   }
@@ -121,7 +136,7 @@ export class ProfileService {
    * Creates profile if doesn't exist, adds Upwork portfolio items
    */
   async importFromUpwork(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, employmentHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -146,6 +161,7 @@ export class ProfileService {
           totalEarnings,
           totalJobs,
           totalHours,
+          bio: bio?.trim(),
           syncedAt: new Date(),
         },
       });
@@ -167,6 +183,7 @@ export class ProfileService {
           totalEarnings,
           totalJobs,
           totalHours,
+          bio: bio?.trim(),
           syncedAt: new Date(),
         },
       });
@@ -235,6 +252,18 @@ export class ProfileService {
       });
     }
 
+    // Add language items
+    if (languages && languages.length > 0) {
+      await this.prisma.languageItem.createMany({
+        data: languages.map(item => ({
+          ...item,
+          language: item.language.trim(),
+          level: item.level.trim(),
+          profileId: profile.id,
+        })),
+      });
+    }
+
     // Return updated profile with all relations
     return this.prisma.profile.findUnique({
       where: { id: profile.id },
@@ -261,6 +290,11 @@ export class ProfileService {
             createdAt: 'desc',
           },
         },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
   }
@@ -270,7 +304,7 @@ export class ProfileService {
    * Custom portfolio items are not affected
    */
   async syncAllUpworkData(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, employmentHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -286,6 +320,7 @@ export class ProfileService {
     profile = await this.prisma.profile.update({
       where: { userId },
       data: {
+        bio: bio?.trim(),
         name: profileName,
         avatar,
         location,
@@ -324,6 +359,12 @@ export class ProfileService {
     });
 
     await this.prisma.employmentHistoryItem.deleteMany({
+      where: {
+        profileId: profile.id,
+      },
+    });
+
+    await this.prisma.languageItem.deleteMany({
       where: {
         profileId: profile.id,
       },
@@ -392,6 +433,18 @@ export class ProfileService {
       });
     }
 
+    // Add new language items
+    if (languages && languages.length > 0) {
+      await this.prisma.languageItem.createMany({
+        data: languages.map(item => ({
+          ...item,
+          language: item.language.trim(),
+          level: item.level.trim(),
+          profileId: profile.id,
+        })),
+      });
+    }
+
     // Return updated profile with all relations
     return this.prisma.profile.findUnique({
       where: { id: profile.id },
@@ -416,6 +469,11 @@ export class ProfileService {
         certificates: {
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -564,6 +622,11 @@ export class ProfileService {
             createdAt: 'desc',
           },
         },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
 
@@ -698,6 +761,11 @@ export class ProfileService {
         certificates: {
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -1055,5 +1123,93 @@ export class ProfileService {
 
     return { message: 'Employment history entry deleted successfully' };
   }
-}
 
+  // ==================== LANGUAGE OPERATIONS ====================
+
+  /**
+   * Create a new language entry
+   */
+  async createLanguage(userId: string, dto: any) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.languageItem.create({
+      data: {
+        language: dto.language.trim(),
+        level: dto.level.trim(),
+        profileId: profile.id,
+      },
+    });
+  }
+
+  /**
+   * Get all language entries for a user
+   */
+  async getLanguages(userId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.languageItem.findMany({
+      where: { profileId: profile.id },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Get a single language entry
+   */
+  async getLanguageItem(userId: string, id: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    const item = await this.prisma.languageItem.findUnique({
+      where: { id },
+    });
+
+    if (!item || item.profileId !== profile.id) {
+      throw new NotFoundException('Language entry not found');
+    }
+
+    return item;
+  }
+
+  /**
+   * Update a language entry
+   */
+  async updateLanguage(userId: string, id: string, dto: any) {
+    await this.getLanguageItem(userId, id);
+
+    const normalizedData: any = {};
+    if (dto.language) normalizedData.language = dto.language.trim();
+    if (dto.level) normalizedData.level = dto.level.trim();
+
+    return this.prisma.languageItem.update({
+      where: { id },
+      data: normalizedData,
+    });
+  }
+
+  /**
+   * Delete a language entry
+   */
+  async deleteLanguage(userId: string, id: string) {
+    await this.getLanguageItem(userId, id);
+
+    await this.prisma.languageItem.delete({
+      where: { id },
+    });
+
+    return { message: 'Language entry deleted successfully' };
+  }
+
+  // ==================== BIO OPERATIONS ====================
+
+  /**
+   * Update profile bio
+   */
+  async updateBio(userId: string, bio: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.profile.update({
+      where: { id: profile.id },
+      data: { bio: bio.trim() },
+    });
+  }
+}
