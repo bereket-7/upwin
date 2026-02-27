@@ -1,11 +1,11 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
   Query,
   Put,
@@ -26,13 +26,15 @@ import { CreateWorkHistoryDto } from './dto/create-work-history.dto';
 import { UpdateWorkHistoryDto } from './dto/update-work-history.dto';
 import { CreateCertificateDto } from './dto/create-certificate.dto';
 import { UpdateCertificateDto } from './dto/update-certificate.dto';
+import { CreateEmploymentHistoryDto } from './dto/create-employment-history.dto';
+import { UpdateEmploymentHistoryDto } from './dto/update-employment-history.dto';
 import { TailoringLevel } from '../../generated/prisma';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class ProfileController {
-  constructor(private readonly profileService: ProfileService) {}
+  constructor(private readonly profileService: ProfileService) { }
 
   // ==================== PROFILE ENDPOINTS ====================
 
@@ -259,6 +261,51 @@ export class ProfileController {
     @CurrentUser('userId') userId: string
   ) {
     return this.profileService.deleteWorkHistory(userId, id);
+  }
+
+  // ==================== EMPLOYMENT HISTORY ENDPOINTS ====================
+
+  @Post('employment-history')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createEmploymentHistory(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateEmploymentHistoryDto
+  ) {
+    return this.profileService.createEmploymentHistory(userId, dto);
+  }
+
+  @Get('employment-history')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getEmploymentHistory(@CurrentUser('userId') userId: string) {
+    return this.profileService.getEmploymentHistory(userId);
+  }
+
+  @Get('employment-history/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getEmploymentHistoryItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getEmploymentHistoryItem(userId, id);
+  }
+
+  @Patch('employment-history/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateEmploymentHistory(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateEmploymentHistoryDto
+  ) {
+    return this.profileService.updateEmploymentHistory(userId, id, dto);
+  }
+
+  @Delete('employment-history/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteEmploymentHistory(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteEmploymentHistory(userId, id);
   }
 
   // ==================== CERTIFICATE ENDPOINTS ====================

@@ -61,6 +61,7 @@ model Profile {
   preferences       ProfilePreference[]
   portfolioItems    PortfolioItem[]
   workHistory       WorkHistoryItem[]
+  employmentHistory EmploymentHistoryItem[]
   education         EducationItem[]
   certificates      CertificateItem[]
   aiHooks           AIHook[]
@@ -198,5 +199,24 @@ model AIHook {
   updatedAt    DateTime     @updatedAt
 
   @@index([preferenceId])
+  @@index([profileId])
+}
+
+model EmploymentHistoryItem {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  title       String
+  company     String
+  location    String?
+  description String?
+  startDate   String?
+  endDate     String?
+  isCurrent   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@index([profileId])
 }
