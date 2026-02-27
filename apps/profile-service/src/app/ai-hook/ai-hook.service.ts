@@ -7,14 +7,14 @@ import { UpdateAIHookDto } from './dto/update-ai-hook.dto';
 export class AIHookService {
   private readonly logger = new Logger(AIHookService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Create a hook (User)
    */
   async create(dto: CreateAIHookDto) {
     this.logger.log(`Creating user AI hook: ${dto.title}`);
-    
+
     return this.prisma.aIHook.create({
       data: {
         title: dto.title,
@@ -31,7 +31,7 @@ export class AIHookService {
    */
   async createSystem(dto: CreateAIHookDto) {
     this.logger.log(`Creating system AI hook: ${dto.title}`);
-    
+
     return this.prisma.aIHook.create({
       data: {
         title: dto.title,
@@ -40,6 +40,19 @@ export class AIHookService {
         profileId: dto.profileId,
         isSystem: true,
       },
+    });
+  }
+
+  /**
+   * Find all system hooks (Admin)
+   */
+  async findAllSystem(preferenceId?: string) {
+    return this.prisma.aIHook.findMany({
+      where: {
+        isSystem: true,
+        ...(preferenceId ? { preferenceId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -87,7 +100,7 @@ export class AIHookService {
     }
 
     // System hooks can only be updated by admins (handled by controller guards)
-    
+
     return this.prisma.aIHook.update({
       where: { id },
       data: dto,
