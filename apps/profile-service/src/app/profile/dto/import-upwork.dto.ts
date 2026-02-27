@@ -4,6 +4,7 @@ import { PortfolioItemDto } from './portfolio-item.dto';
 import { WorkHistoryItemDto } from './work-history-item.dto';
 import { EducationItemDto } from './education-item.dto';
 import { CreateEmploymentHistoryDto } from './create-employment-history.dto';
+import { CreateLanguageDto } from './create-language.dto';
 
 export class ImportUpworkDto {
   // Profile fields
@@ -92,4 +93,14 @@ export class ImportUpworkDto {
   @Type(() => CreateEmploymentHistoryDto)
   @IsOptional()
   employmentHistory?: CreateEmploymentHistoryDto[];
+
+  @IsString()
+  @IsOptional()
+  bio?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateLanguageDto)
+  @IsOptional()
+  languages?: CreateLanguageDto[];
 }
