@@ -9,7 +9,7 @@ import { PortfolioType, TailoringLevel } from '../../generated/prisma';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // ==================== PROFILE OPERATIONS ====================
 
@@ -27,6 +27,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -52,6 +57,11 @@ export class ProfileService {
           },
           portfolioItems: true,
           workHistory: true,
+          employmentHistory: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
           education: {
             orderBy: {
               createdAt: 'desc',
@@ -87,6 +97,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -106,7 +121,7 @@ export class ProfileService {
    * Creates profile if doesn't exist, adds Upwork portfolio items
    */
   async importFromUpwork(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, employmentHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -193,14 +208,30 @@ export class ProfileService {
       // Remove duplicates based on school, degree, and dates
       const uniqueEducation = normalizedEducation.filter((item, index, self) =>
         index === self.findIndex((t) => (
-          t.school === item.school && 
-          t.degree === item.degree && 
+          t.school === item.school &&
+          t.degree === item.degree &&
           t.dates === item.dates
         ))
       );
 
       await this.prisma.educationItem.createMany({
         data: uniqueEducation,
+      });
+    }
+
+    // Add employment history items
+    if (employmentHistory && employmentHistory.length > 0) {
+      await this.prisma.employmentHistoryItem.createMany({
+        data: employmentHistory.map(item => ({
+          ...item,
+          title: item.title.trim(),
+          company: item.company.trim(),
+          location: item.location?.trim(),
+          description: item.description?.trim(),
+          startDate: item.startDate?.trim(),
+          endDate: item.endDate?.trim(),
+          profileId: profile.id,
+        })),
       });
     }
 
@@ -215,6 +246,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -234,7 +270,7 @@ export class ProfileService {
    * Custom portfolio items are not affected
    */
   async syncAllUpworkData(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, employmentHistory, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -287,6 +323,12 @@ export class ProfileService {
       },
     });
 
+    await this.prisma.employmentHistoryItem.deleteMany({
+      where: {
+        profileId: profile.id,
+      },
+    });
+
     // Add new portfolio items
     if (portfolioItems && portfolioItems.length > 0) {
       await this.prisma.portfolioItem.createMany({
@@ -323,14 +365,30 @@ export class ProfileService {
       // Remove duplicates based on school, degree, and dates
       const uniqueEducation = normalizedEducation.filter((item, index, self) =>
         index === self.findIndex((t) => (
-          t.school === item.school && 
-          t.degree === item.degree && 
+          t.school === item.school &&
+          t.degree === item.degree &&
           t.dates === item.dates
         ))
       );
 
       await this.prisma.educationItem.createMany({
         data: uniqueEducation,
+      });
+    }
+
+    // Add new employment history items
+    if (employmentHistory && employmentHistory.length > 0) {
+      await this.prisma.employmentHistoryItem.createMany({
+        data: employmentHistory.map(item => ({
+          ...item,
+          title: item.title.trim(),
+          company: item.company.trim(),
+          location: item.location?.trim(),
+          description: item.description?.trim(),
+          startDate: item.startDate?.trim(),
+          endDate: item.endDate?.trim(),
+          profileId: profile.id,
+        })),
       });
     }
 
@@ -345,6 +403,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -486,6 +549,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -617,6 +685,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -892,6 +965,95 @@ export class ProfileService {
     });
 
     return { message: 'Certificate entry deleted successfully' };
+  }
+
+  // ==================== EMPLOYMENT HISTORY OPERATIONS ====================
+
+  /**
+   * Create a new employment history entry
+   */
+  async createEmploymentHistory(userId: string, dto: any) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    // Normalize data
+    const normalizedData = {
+      title: dto.title.trim(),
+      company: dto.company.trim(),
+      location: dto.location?.trim(),
+      description: dto.description?.trim(),
+      startDate: dto.startDate?.trim(),
+      endDate: dto.endDate?.trim(),
+      isCurrent: dto.isCurrent ?? false,
+      profileId: profile.id,
+    };
+
+    return this.prisma.employmentHistoryItem.create({
+      data: normalizedData,
+    });
+  }
+
+  /**
+   * Get all employment history entries for a user
+   */
+  async getEmploymentHistory(userId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.employmentHistoryItem.findMany({
+      where: { profileId: profile.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Get a single employment history entry
+   */
+  async getEmploymentHistoryItem(userId: string, id: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    const item = await this.prisma.employmentHistoryItem.findUnique({
+      where: { id },
+    });
+
+    if (!item || item.profileId !== profile.id) {
+      throw new NotFoundException('Employment history entry not found');
+    }
+
+    return item;
+  }
+
+  /**
+   * Update an employment history entry
+   */
+  async updateEmploymentHistory(userId: string, id: string, dto: any) {
+    await this.getEmploymentHistoryItem(userId, id);
+
+    // Normalize data
+    const normalizedData: any = {};
+    if (dto.title) normalizedData.title = dto.title.trim();
+    if (dto.company) normalizedData.company = dto.company.trim();
+    if (dto.location !== undefined) normalizedData.location = dto.location?.trim();
+    if (dto.description !== undefined) normalizedData.description = dto.description?.trim();
+    if (dto.startDate !== undefined) normalizedData.startDate = dto.startDate?.trim();
+    if (dto.endDate !== undefined) normalizedData.endDate = dto.endDate?.trim();
+    if (dto.isCurrent !== undefined) normalizedData.isCurrent = dto.isCurrent;
+
+    return this.prisma.employmentHistoryItem.update({
+      where: { id },
+      data: normalizedData,
+    });
+  }
+
+  /**
+   * Delete an employment history entry
+   */
+  async deleteEmploymentHistory(userId: string, id: string) {
+    await this.getEmploymentHistoryItem(userId, id);
+
+    await this.prisma.employmentHistoryItem.delete({
+      where: { id },
+    });
+
+    return { message: 'Employment history entry deleted successfully' };
   }
 }
 
