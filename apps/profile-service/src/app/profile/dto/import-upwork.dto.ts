@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import { PortfolioItemDto } from './portfolio-item.dto';
 import { WorkHistoryItemDto } from './work-history-item.dto';
 import { EducationItemDto } from './education-item.dto';
+import { CreateEmploymentHistoryDto } from './create-employment-history.dto';
 
 export class ImportUpworkDto {
   // Profile fields
@@ -85,4 +86,10 @@ export class ImportUpworkDto {
   @Type(() => EducationItemDto)
   @IsOptional()
   education?: EducationItemDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateEmploymentHistoryDto)
+  @IsOptional()
+  employmentHistory?: CreateEmploymentHistoryDto[];
 }
