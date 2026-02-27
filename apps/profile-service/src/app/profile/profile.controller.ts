@@ -28,6 +28,8 @@ import { CreateCertificateDto } from './dto/create-certificate.dto';
 import { UpdateCertificateDto } from './dto/update-certificate.dto';
 import { CreateEmploymentHistoryDto } from './dto/create-employment-history.dto';
 import { UpdateEmploymentHistoryDto } from './dto/update-employment-history.dto';
+import { CreateLanguageDto } from './dto/create-language.dto';
+import { UpdateLanguageDto } from './dto/update-language.dto';
 import { TailoringLevel } from '../../generated/prisma';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -351,5 +353,61 @@ export class ProfileController {
     @CurrentUser('userId') userId: string
   ) {
     return this.profileService.deleteCertificate(userId, id);
+  }
+
+  // ==================== LANGUAGE ENDPOINTS ====================
+
+  @Post('languages')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createLanguage(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateLanguageDto
+  ) {
+    return this.profileService.createLanguage(userId, dto);
+  }
+
+  @Get('languages')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getLanguages(@CurrentUser('userId') userId: string) {
+    return this.profileService.getLanguages(userId);
+  }
+
+  @Get('languages/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getLanguageItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getLanguageItem(userId, id);
+  }
+
+  @Patch('languages/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateLanguage(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateLanguageDto
+  ) {
+    return this.profileService.updateLanguage(userId, id, dto);
+  }
+
+  @Delete('languages/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteLanguage(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteLanguage(userId, id);
+  }
+
+  // ==================== BIO ENDPOINTS ====================
+
+  @Patch('bio')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateBio(
+    @CurrentUser('userId') userId: string,
+    @Body('bio') bio: string
+  ) {
+    return this.profileService.updateBio(userId, bio);
   }
 }

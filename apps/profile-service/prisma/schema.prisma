@@ -64,6 +64,7 @@ model Profile {
   employmentHistory EmploymentHistoryItem[]
   education         EducationItem[]
   certificates      CertificateItem[]
+  languages         LanguageItem[]
   aiHooks           AIHook[]
 
   createdAt     DateTime @default(now())
@@ -220,3 +221,18 @@ model EmploymentHistoryItem {
 
   @@index([profileId])
 }
+
+model LanguageItem {
+  id        String   @id @default(uuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  language  String
+  level     String   // e.g., "Native or Bilingual", "Fluent", "Conversational", "Basic"
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId])
+}
+
