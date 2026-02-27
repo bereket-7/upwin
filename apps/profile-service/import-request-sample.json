@@ -1,0 +1,101 @@
+{
+  "profileName": "John Doe",
+  "avatar": "https://upwork.com/avatar.jpg",
+  "location": "San Francisco, CA",
+  "country": "USA",
+  "city": "San Francisco",
+  "title": "Full Stack Developer",
+  "hourlyRate": 150,
+  "experienceYrs": 10,
+  "upworkId": "upwork-123",
+  "skills": [
+    "JavaScript",
+    "React",
+    "Node.js",
+    "TypeScript",
+    "PostgreSQL",
+    "AWS"
+  ],
+  "totalEarnings": "$250,000+",
+  "totalJobs": "50+",
+  "totalHours": "2000+",
+  "bio": "Experienced full-stack developer with 10+ years building scalable web applications.",
+  "portfolioItems": [
+    {
+      "title": "E-commerce Platform",
+      "description": "Built a full-stack e-commerce solution",
+      "role": "Lead Developer",
+      "skills": [
+        "React",
+        "Node.js",
+        "PostgreSQL"
+      ],
+      "url": "https://example.com"
+    }
+  ],
+  "workHistory": [
+    {
+      "title": "Senior Developer at Tech Corp",
+      "company": "Tech Corp",
+      "dates": "2020 - 2024",
+      "totalEarned": "$150,000",
+      "hours": "1500",
+      "hourlyRate": "$100",
+      "description": "Led development of multiple projects"
+    }
+  ],
+  "education": [
+    {
+      "school": "Stanford University",
+      "degree": "Bachelor of Science in Computer Science",
+      "dates": "2010 - 2014",
+      "fieldOfStudy": "Computer Science"
+    }
+  ],
+  "employmentHistory": [
+    {
+      "title": "Senior Software Engineer",
+      "company": "Acme Corp",
+      "location": "New York, USA",
+      "description": "Led backend development of the core platform",
+      "startDate": "Jan 2021",
+      "endDate": "Dec 2023",
+      "isCurrent": false
+    }
+  ],
+  "languages": [
+    {
+      "language": "English",
+      "level": "Native or Bilingual"
+    },
+    {
+      "language": "Spanish",
+      "level": "Conversational"
+    }
+  ],
+  "certificates": [
+    {
+      "name": "AWS Certified Solutions Architect",
+      "issuer": "Amazon Web Services",
+      "issueDate": "Jan 2023",
+      "expiryDate": "Jan 2026",
+      "credentialId": "AWS-12345",
+      "url": "https://aws.amazon.com/verify/12345",
+      "description": "Professional level certification for designing distributed systems"
+    },
+    {
+      "name": "Certified Kubernetes Administrator",
+      "issuer": "Cloud Native Computing Foundation",
+      "issueDate": "Mar 2022",
+      "credentialId": "CKA-67890",
+      "url": "https://cncf.io/verify/67890"
+    },
+    {
+      "name": "MongoDB Certified Developer",
+      "issuer": "MongoDB Inc.",
+      "issueDate": "Jun 2021",
+      "expiryDate": "Jun 2024",
+      "credentialId": "MONGO-54321"
+    }
+  ]
+}
