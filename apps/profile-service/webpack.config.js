@@ -10,15 +10,6 @@ module.exports = {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
   },
-  externals: [
-    // Externalize Prisma client completely
-    function ({ request }, callback) {
-      if (request && (request.includes('generated/prisma') || request.includes('@prisma/client'))) {
-        return callback(null, 'commonjs ' + request);
-      }
-      callback();
-    },
-  ],
   resolve: {
     alias: {
       '@org/shared': join(__dirname, '../../libs/shared/src/index.ts'),
