@@ -1,11 +1,11 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
   Query,
   Put,
@@ -19,12 +19,24 @@ import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { PaginationDto } from './dto/pagination.dto';
 import { ImportUpworkDto } from './dto/import-upwork.dto';
 import { UpdateProfilePreferencesDto, AddProfilePreferenceDto } from './dto/update-profile-preferences.dto';
+import { UpdateTailoringDto } from './dto/update-tailoring.dto';
+import { CreateEducationDto } from './dto/create-education.dto';
+import { UpdateEducationDto } from './dto/update-education.dto';
+import { CreateWorkHistoryDto } from './dto/create-work-history.dto';
+import { UpdateWorkHistoryDto } from './dto/update-work-history.dto';
+import { CreateCertificateDto } from './dto/create-certificate.dto';
+import { UpdateCertificateDto } from './dto/update-certificate.dto';
+import { CreateEmploymentHistoryDto } from './dto/create-employment-history.dto';
+import { UpdateEmploymentHistoryDto } from './dto/update-employment-history.dto';
+import { CreateLanguageDto } from './dto/create-language.dto';
+import { UpdateLanguageDto } from './dto/update-language.dto';
+import { TailoringLevel } from '../../generated/prisma';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Controller('profile')
+@Controller()
 @UseGuards(JwtAuthGuard)
 export class ProfileController {
-  constructor(private readonly profileService: ProfileService) {}
+  constructor(private readonly profileService: ProfileService) { }
 
   // ==================== PROFILE ENDPOINTS ====================
 
@@ -41,6 +53,15 @@ export class ProfileController {
     @Body() updateProfileDto: UpdateProfileDto
   ) {
     return this.profileService.updateProfile(userId, updateProfileDto);
+  }
+
+  @Patch('tailoring')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateTailoring(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateTailoringDto
+  ) {
+    return this.profileService.updateTailoring(userId, dto.level);
   }
 
   @Post('import')
@@ -152,5 +173,241 @@ export class ProfileController {
     @CurrentUser('userId') userId: string
   ) {
     return this.profileService.removePreference(userId, preferenceId);
+  }
+
+  // ==================== EDUCATION ENDPOINTS ====================
+
+  @Post('education')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createEducation(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateEducationDto
+  ) {
+    return this.profileService.createEducation(userId, dto);
+  }
+
+  @Get('education')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getEducation(@CurrentUser('userId') userId: string) {
+    return this.profileService.getEducation(userId);
+  }
+
+  @Get('education/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getEducationItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getEducationItem(userId, id);
+  }
+
+  @Patch('education/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateEducation(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateEducationDto
+  ) {
+    return this.profileService.updateEducation(userId, id, dto);
+  }
+
+  @Delete('education/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteEducation(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteEducation(userId, id);
+  }
+
+  // ==================== WORK HISTORY ENDPOINTS ====================
+
+  @Post('work-history')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createWorkHistory(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateWorkHistoryDto
+  ) {
+    return this.profileService.createWorkHistory(userId, dto);
+  }
+
+  @Get('work-history')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getWorkHistory(@CurrentUser('userId') userId: string) {
+    return this.profileService.getWorkHistory(userId);
+  }
+
+  @Get('work-history/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getWorkHistoryItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getWorkHistoryItem(userId, id);
+  }
+
+  @Patch('work-history/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateWorkHistory(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateWorkHistoryDto
+  ) {
+    return this.profileService.updateWorkHistory(userId, id, dto);
+  }
+
+  @Delete('work-history/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteWorkHistory(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteWorkHistory(userId, id);
+  }
+
+  // ==================== EMPLOYMENT HISTORY ENDPOINTS ====================
+
+  @Post('employment-history')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createEmploymentHistory(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateEmploymentHistoryDto
+  ) {
+    return this.profileService.createEmploymentHistory(userId, dto);
+  }
+
+  @Get('employment-history')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getEmploymentHistory(@CurrentUser('userId') userId: string) {
+    return this.profileService.getEmploymentHistory(userId);
+  }
+
+  @Get('employment-history/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getEmploymentHistoryItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getEmploymentHistoryItem(userId, id);
+  }
+
+  @Patch('employment-history/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateEmploymentHistory(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateEmploymentHistoryDto
+  ) {
+    return this.profileService.updateEmploymentHistory(userId, id, dto);
+  }
+
+  @Delete('employment-history/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteEmploymentHistory(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteEmploymentHistory(userId, id);
+  }
+
+  // ==================== CERTIFICATE ENDPOINTS ====================
+
+  @Post('certificates')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createCertificate(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateCertificateDto
+  ) {
+    return this.profileService.createCertificate(userId, dto);
+  }
+
+  @Get('certificates')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getCertificates(@CurrentUser('userId') userId: string) {
+    return this.profileService.getCertificates(userId);
+  }
+
+  @Get('certificates/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getCertificateItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getCertificateItem(userId, id);
+  }
+
+  @Patch('certificates/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateCertificate(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateCertificateDto
+  ) {
+    return this.profileService.updateCertificate(userId, id, dto);
+  }
+
+  @Delete('certificates/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteCertificate(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteCertificate(userId, id);
+  }
+
+  // ==================== LANGUAGE ENDPOINTS ====================
+
+  @Post('languages')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  createLanguage(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: CreateLanguageDto
+  ) {
+    return this.profileService.createLanguage(userId, dto);
+  }
+
+  @Get('languages')
+  @Throttle({ long: { limit: 100, ttl: 60000 } })
+  getLanguages(@CurrentUser('userId') userId: string) {
+    return this.profileService.getLanguages(userId);
+  }
+
+  @Get('languages/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getLanguageItem(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getLanguageItem(userId, id);
+  }
+
+  @Patch('languages/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateLanguage(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateLanguageDto
+  ) {
+    return this.profileService.updateLanguage(userId, id, dto);
+  }
+
+  @Delete('languages/:id')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  deleteLanguage(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.deleteLanguage(userId, id);
+  }
+
+  // ==================== BIO ENDPOINTS ====================
+
+  @Patch('bio')
+  @Throttle({ short: { limit: 10, ttl: 1000 } })
+  updateBio(
+    @CurrentUser('userId') userId: string,
+    @Body('bio') bio: string
+  ) {
+    return this.profileService.updateBio(userId, bio);
   }
 }

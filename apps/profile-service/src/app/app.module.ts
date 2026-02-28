@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfileModule } from './profile/profile.module';
 import { AIPreferenceModule } from './ai-preference/ai-preference.module';
+import { AIHookModule } from './ai-hook/ai-hook.module';
 import { HealthModule } from './health/health.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -15,6 +16,7 @@ import { AppService } from './app.service';
     PrismaModule,
     ProfileModule,
     AIPreferenceModule,
+    AIHookModule,
     HealthModule,
   ],
   controllers: [AppController],

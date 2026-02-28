@@ -15,6 +15,12 @@ enum PortfolioType {
   UPWORK_IMPORT
 }
 
+enum TailoringLevel {
+  LIGHT
+  BALANCED
+  DEEP
+}
+
 enum PreferenceCategory {
   TONE
   WRITING_STYLE
@@ -39,6 +45,9 @@ model Profile {
   experienceYrs Int?
   skills        String[]
   
+  // Tailoring preference
+  tailoring     TailoringLevel @default(BALANCED)
+  
   // Upwork-specific
   upworkId      String?   @unique
   syncedAt      DateTime?
@@ -52,6 +61,11 @@ model Profile {
   preferences       ProfilePreference[]
   portfolioItems    PortfolioItem[]
   workHistory       WorkHistoryItem[]
+  employmentHistory EmploymentHistoryItem[]
+  education         EducationItem[]
+  certificates      CertificateItem[]
+  languages         LanguageItem[]
+  aiHooks           AIHook[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -99,6 +113,42 @@ model WorkHistoryItem {
   @@index([profileId])
 }
 
+model EducationItem {
+  id           String   @id @default(uuid())
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  school       String
+  degree       String
+  dates        String?
+  fieldOfStudy String?
+  description  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([profileId])
+}
+
+model CertificateItem {
+  id           String   @id @default(uuid())
+  profileId    String
+  profile      Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  name         String
+  issuer       String?
+  issueDate    String?
+  expiryDate   String?
+  credentialId String?
+  url          String?
+  description  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([profileId])
+}
+
 model AIPreference {
   id          String              @id @default(uuid())
   category    PreferenceCategory
@@ -111,6 +161,7 @@ model AIPreference {
   
   // Many-to-many relation
   profiles    ProfilePreference[]
+  aiHooks     AIHook[]
   
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
@@ -133,3 +184,55 @@ model ProfilePreference {
   @@index([profileId])
   @@index([preferenceId])
 }
+
+model AIHook {
+  id           String       @id @default(uuid())
+  title        String       // Brief title for the hook (e.g., "Standard Intro")
+  text         String       // The actual hook/intro text
+  preferenceId String       // FK to AIPreference (specifically TONE category)
+  profileId    String?      // FK to Profile (null for system hooks)
+  isSystem     Boolean      @default(false)
+
+  preference   AIPreference @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  profile      Profile?     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([preferenceId])
+  @@index([profileId])
+}
+
+model EmploymentHistoryItem {
+  id          String   @id @default(uuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  title       String
+  company     String
+  location    String?
+  description String?
+  startDate   String?
+  endDate     String?
+  isCurrent   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([profileId])
+}
+
+model LanguageItem {
+  id        String   @id @default(uuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  language  String
+  level     String   // e.g., "Native or Bilingual", "Fluent", "Conversational", "Basic"
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId])
+}
+

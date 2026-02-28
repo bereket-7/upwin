@@ -22,8 +22,11 @@ import { ConfigService } from '../config/config.service';
 import { AuthCodeService } from './auth-code.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import type { UserProfile, AuthenticatedUser } from './auth.types';
+import * as AuthTypes from './auth.types';
 import { CurrentUser } from '@org/shared';
+import { UpdateAvatarDto } from './dto/update-avatar.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { Patch, Delete } from '@nestjs/common';
 
 @Controller('auth')
 export class AuthController {
@@ -60,6 +63,15 @@ export class AuthController {
     return this.authService.resendVerification(email);
   }
 
+  @Post('resend-otp')
+  @HttpCode(HttpStatus.OK)
+  async resendOtp(@Body('email') email: string): Promise<{ message: string }> {
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    return this.authService.resendOtp(email);
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto): Promise<LoginResponse> {
@@ -83,7 +95,7 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@CurrentUser() user: AuthenticatedUser): Promise<UserProfile> {
+  async getProfile(@CurrentUser() user: AuthTypes.AuthenticatedUser): Promise<AuthTypes.UserProfile> {
     return this.authService.getProfile(user.userId);
   }
 
@@ -91,7 +103,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async logout(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() user: AuthTypes.AuthenticatedUser,
     @Body('refreshToken') refreshToken?: string,
   ): Promise<{ message: string }> {
     // Blacklist the access token
@@ -111,7 +123,7 @@ export class AuthController {
   @Post('logout-all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logoutAll(@CurrentUser() user: AuthenticatedUser): Promise<{ message: string }> {
+  async logoutAll(@CurrentUser() user: AuthTypes.AuthenticatedUser): Promise<{ message: string }> {
     return this.authService.logoutAll(user.userId);
   }
 
@@ -121,7 +133,7 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleCallback(@Request() req: { user: UserProfile }, @Res() res: Response) {
+  async googleCallback(@Request() req: { user: AuthTypes.UserProfile }, @Res() res: Response) {
     const authCode = this.authCodeService.generateAuthCode(req.user.id);
     const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
     
@@ -138,7 +150,7 @@ export class AuthController {
 
   @Get('linkedin/callback')
   @UseGuards(AuthGuard('linkedin'))
-  async linkedinCallback(@Request() req: { user: UserProfile }, @Res() res: Response) {
+  async linkedinCallback(@Request() req: { user: AuthTypes.UserProfile }, @Res() res: Response) {
     const authCode = this.authCodeService.generateAuthCode(req.user.id);
     const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
     
@@ -179,5 +191,34 @@ export class AuthController {
     const html = readFileSync(htmlPath, 'utf8');
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
+  }
+
+  @Patch('profile/avatar')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateAvatar(
+    @CurrentUser() user: AuthTypes.AuthenticatedUser,
+    @Body() dto: UpdateAvatarDto
+  ): Promise<AuthTypes.UserProfile> {
+    return this.authService.updateAvatar(user.userId, dto.avatarUrl);
+  }
+
+  @Delete('profile/avatar')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteAvatar(
+    @CurrentUser() user: AuthTypes.AuthenticatedUser
+  ): Promise<AuthTypes.UserProfile> {
+    return this.authService.deleteAvatar(user.userId);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @CurrentUser() user: AuthTypes.AuthenticatedUser,
+    @Body() dto: ChangePasswordDto
+  ): Promise<{ message: string }> {
+    return this.authService.changePassword(user.userId, dto.oldPassword, dto.newPassword);
   }
 }

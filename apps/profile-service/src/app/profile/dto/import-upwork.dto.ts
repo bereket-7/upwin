@@ -2,6 +2,10 @@ import { IsString, IsOptional, IsArray, IsNumber, IsInt, ValidateNested } from '
 import { Type } from 'class-transformer';
 import { PortfolioItemDto } from './portfolio-item.dto';
 import { WorkHistoryItemDto } from './work-history-item.dto';
+import { EducationItemDto } from './education-item.dto';
+import { CreateEmploymentHistoryDto } from './create-employment-history.dto';
+import { CreateLanguageDto } from './create-language.dto';
+import { CreateCertificateDto } from './create-certificate.dto';
 
 export class ImportUpworkDto {
   // Profile fields
@@ -78,4 +82,32 @@ export class ImportUpworkDto {
   @Type(() => WorkHistoryItemDto)
   @IsOptional()
   workHistory?: WorkHistoryItemDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EducationItemDto)
+  @IsOptional()
+  education?: EducationItemDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateEmploymentHistoryDto)
+  @IsOptional()
+  employmentHistory?: CreateEmploymentHistoryDto[];
+
+  @IsString()
+  @IsOptional()
+  bio?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateLanguageDto)
+  @IsOptional()
+  languages?: CreateLanguageDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateCertificateDto)
+  @IsOptional()
+  certificates?: CreateCertificateDto[];
 }
