@@ -11,13 +11,10 @@ module.exports = {
     }),
   },
   externals: [
-    // Externalize all Prisma-related modules
+    // Externalize ALL Prisma-related imports
     function ({ request }, callback) {
-      if (request && (
-        request.includes('@prisma') || 
-        request.includes('generated/prisma') ||
-        request.includes('.prisma')
-      )) {
+      // Match any import containing 'prisma' or '@prisma'
+      if (request && (request.includes('prisma') || request.includes('@prisma'))) {
         return callback(null, 'commonjs ' + request);
       }
       callback();
