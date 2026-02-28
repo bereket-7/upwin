@@ -10,6 +10,11 @@ module.exports = {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
   },
+  externals: {
+    // Externalize Prisma packages to prevent bundling issues
+    '@prisma/client': 'commonjs @prisma/client',
+    '@prisma/adapter-pg': 'commonjs @prisma/adapter-pg',
+  },
   resolve: {
     alias: {
       '@org/shared': join(__dirname, '../../libs/shared/src/index.ts'),
