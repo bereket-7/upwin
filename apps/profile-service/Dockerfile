@@ -11,14 +11,12 @@ RUN npm install --omit=dev
 # Copy the COMPILED shared library (not source)
 COPY libs/shared/dist ./node_modules/@org/shared/
 
-# Copy Prisma schema and configuration FIRST
+# Copy Prisma schema, engine, and configuration
 COPY apps/profile-service/prisma ./prisma/
 COPY apps/profile-service/prisma.config.ts ./
-
-# Generate Prisma client BEFORE copying built code
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
-# Copy built application code AFTER Prisma generation
+# Copy built application code
 COPY apps/profile-service/dist/ ./
 
 # Add a non-root user for security
