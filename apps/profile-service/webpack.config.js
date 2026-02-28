@@ -10,6 +10,15 @@ module.exports = {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
   },
+  externals: [
+    // Externalize Prisma client so it's not bundled by webpack
+    function ({ request }, callback) {
+      if (request && request.includes('generated/prisma')) {
+        return callback(null, 'commonjs ' + request);
+      }
+      callback();
+    },
+  ],
   resolve: {
     alias: {
       '@org/shared': join(__dirname, '../../libs/shared/src/index.ts'),
