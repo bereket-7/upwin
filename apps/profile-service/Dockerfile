@@ -14,12 +14,14 @@ COPY libs/shared/dist ./node_modules/@org/shared/
 # Copy built application code
 COPY apps/profile-service/dist/ ./
 
+# Copy generated Prisma client separately (not bundled by webpack)
+COPY apps/profile-service/src/generated ./src/generated/
+
 # Copy Prisma schema and configuration
 COPY apps/profile-service/prisma ./prisma/
 COPY apps/profile-service/prisma.config.ts ./
 
-# Generate Prisma client to src/generated/prisma (as specified in schema)
-# This creates the client at /app/src/generated/prisma which matches the import path
+# Regenerate Prisma client to ensure it matches runtime environment
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Add a non-root user for security

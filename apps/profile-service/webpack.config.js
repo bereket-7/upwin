@@ -10,11 +10,19 @@ module.exports = {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
   },
-  externals: {
-    // Externalize Prisma packages to prevent bundling issues
-    '@prisma/client': 'commonjs @prisma/client',
-    '@prisma/adapter-pg': 'commonjs @prisma/adapter-pg',
-  },
+  externals: [
+    // Externalize all Prisma-related modules
+    function ({ request }, callback) {
+      if (request && (
+        request.includes('@prisma') || 
+        request.includes('generated/prisma') ||
+        request.includes('.prisma')
+      )) {
+        return callback(null, 'commonjs ' + request);
+      }
+      callback();
+    },
+  ],
   resolve: {
     alias: {
       '@org/shared': join(__dirname, '../../libs/shared/src/index.ts'),
