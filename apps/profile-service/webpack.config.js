@@ -11,9 +11,9 @@ module.exports = {
     }),
   },
   externals: [
-    // Externalize Prisma client so it's not bundled by webpack
+    // Externalize Prisma client completely
     function ({ request }, callback) {
-      if (request && request.includes('generated/prisma')) {
+      if (request && (request.includes('generated/prisma') || request.includes('@prisma/client'))) {
         return callback(null, 'commonjs ' + request);
       }
       callback();
