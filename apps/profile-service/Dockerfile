@@ -11,18 +11,15 @@ RUN npm install --omit=dev
 # Copy the COMPILED shared library (not source)
 COPY libs/shared/dist ./node_modules/@org/shared/
 
-# Copy built application code
-COPY apps/profile-service/dist/ ./
-
-# Copy generated Prisma client separately (not bundled by webpack)
-COPY apps/profile-service/src/generated ./src/generated/
-
-# Copy Prisma schema and configuration
+# Copy Prisma schema and configuration FIRST
 COPY apps/profile-service/prisma ./prisma/
 COPY apps/profile-service/prisma.config.ts ./
 
-# Regenerate Prisma client to ensure it matches runtime environment
+# Generate Prisma client BEFORE copying built code
 RUN npx prisma generate --schema=./prisma/schema.prisma
+
+# Copy built application code AFTER Prisma generation
+COPY apps/profile-service/dist/ ./
 
 # Add a non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
@@ -34,5 +31,4 @@ USER nestjs
 EXPOSE 3009
 
 # Run migrations and then start the application
-# Use || true to continue even if migrate fails, allowing manual intervention
-CMD npx prisma migrate deploy --schema=./prisma/schema.prisma || (echo "Migration failed. Check logs and resolve manually." && exit 1) && node main.js
+CMD npx prisma migrate deploy --schema=./prisma/schema.prisma && node main.js
