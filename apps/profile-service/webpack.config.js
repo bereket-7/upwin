@@ -8,13 +8,16 @@ module.exports = {
   output: {
     path: join(__dirname, 'dist'),
     clean: true,
-    libraryTarget: 'commonjs2',
+    libraryTarget: 'commonjs2'
   },
 
   resolve: {
-    extensions: ['.ts', '.js'],
+    extensions: ['.ts', '.js']
   },
 
+  /**
+   * ✅ CRITICAL — Do NOT bundle Prisma runtime
+   */
   externals: {
     '@prisma/client': 'commonjs @prisma/client',
     '@prisma/client/runtime/library': 'commonjs @prisma/client/runtime/library',
@@ -23,10 +26,11 @@ module.exports = {
   },
 
   optimization: {
-    minimize: false,
+    minimize: false
   },
 
   plugins: [
+
     new NxAppWebpackPlugin({
       target: 'node',
       compiler: 'tsc',
@@ -41,21 +45,24 @@ module.exports = {
 
       generatePackageJson: true,
 
-      sourceMap: false,
-
-      webpackConfig: {
-        externals: {
-          '@prisma/client': 'commonjs @prisma/client'
-        }
-      }
+      /**
+       * ✅ MUST be true for Node Prisma stack trace safety
+       */
+      sourceMap: true
     }),
 
+    /**
+     * Prevent NestJS optional module bundling
+     */
     new webpack.IgnorePlugin({
       resourceRegExp: /^@nestjs\/(microservices|websockets|platform-socket.io)$/
     }),
 
+    /**
+     * revent Prisma engine bundling
+     */
     new webpack.IgnorePlugin({
-      resourceRegExp: /(^@prisma\/engines$|^prisma\/lib\/engines$)/
+      resourceRegExp: /@prisma\/(engines|runtime)/
     })
-  ],
+  ]
 };
