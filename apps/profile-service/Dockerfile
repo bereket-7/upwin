@@ -1,10 +1,11 @@
 # This Dockerfile expects the app to be built ALREADY (e.g., by Nx in CI)
 # Context must be the project root
 
-# FROM node:20-alpine
-FROM node:20
+FROM node:20-alpine
 WORKDIR /app
 
+ENV NODE_OPTIONS="--enable-source-maps"
+ENV PRISMA_CLIENT_ENGINE_TYPE="binary"
 # Copy generated package.json from build output and install dependencies
 COPY apps/profile-service/dist/package*.json ./
 RUN npm install --omit=dev
