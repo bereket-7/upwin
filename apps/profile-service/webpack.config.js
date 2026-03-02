@@ -15,15 +15,11 @@ module.exports = {
     extensions: ['.ts', '.js'],
   },
 
-  /**
-   * Prevent Prisma runtime bundling
-   */
   externals: {
     '@prisma/client': 'commonjs @prisma/client',
+    '@prisma/client/runtime/library': 'commonjs @prisma/client/runtime/library',
     '@prisma/adapter-pg': 'commonjs @prisma/adapter-pg',
-    'pg': 'commonjs pg',
-    '@prisma/client/runtime/library':
-      'commonjs @prisma/client/runtime/library'
+    pg: 'commonjs pg'
   },
 
   optimization: {
@@ -46,20 +42,20 @@ module.exports = {
       generatePackageJson: true,
 
       sourceMap: false,
+
+      webpackConfig: {
+        externals: {
+          '@prisma/client': 'commonjs @prisma/client'
+        }
+      }
     }),
 
-    /**
-     * Prevent NestJS optional module bundling issues
-     */
     new webpack.IgnorePlugin({
-      resourceRegExp: /^@nestjs\/(microservices|websockets|platform-socket.io)$/,
+      resourceRegExp: /^@nestjs\/(microservices|websockets|platform-socket.io)$/
     }),
 
-    /**
-     * Prevent Prisma optional binary engine bundling
-     */
     new webpack.IgnorePlugin({
-      resourceRegExp: /(^@prisma\/engines$|^prisma\/lib\/engines$)/,
-    }),
+      resourceRegExp: /(^@prisma\/engines$|^prisma\/lib\/engines$)/
+    })
   ],
 };
