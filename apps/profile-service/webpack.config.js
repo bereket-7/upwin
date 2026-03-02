@@ -45,7 +45,7 @@ module.exports = {
 
       generatePackageJson: true,
 
-      sourceMap: true,
+      sourceMap: false,
     }),
 
     /**
