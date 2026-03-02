@@ -3,13 +3,6 @@ const { join } = require('path');
 const webpack = require('webpack');
 
 module.exports = {
-  target: 'node',
-  
-  externals: {
-    '@prisma/client': 'commonjs @prisma/client',
-    'prisma': 'commonjs prisma',
-  },
-
   output: {
     path: join(__dirname, 'dist'),
     clean: true,
@@ -26,16 +19,18 @@ module.exports = {
 
   plugins: [
     new NxAppWebpackPlugin({
-      target: 'node',
-      compiler: 'tsc',
-      main: './src/main.ts',
-      tsConfig: './tsconfig.app.json',
-      assets: ['./src/assets'],
-      optimization: false,
-      outputHashing: 'none',
-      generatePackageJson: true,
-      sourceMap: true,
-    }),
+    target: 'node',
+    compiler: 'tsc',
+    main: './src/main.ts',
+    tsConfig: './tsconfig.app.json',
+    assets: ['./src/assets'],
+    optimization: false,
+    outputHashing: 'none',
+    generatePackageJson: true,
+    sourceMap: true,
+
+    externalDependencies: 'all',
+  }),
 
     new webpack.IgnorePlugin({
       resourceRegExp: /^pg-native$/,
