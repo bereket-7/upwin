@@ -8,15 +8,22 @@ module.exports = {
   output: {
     path: join(__dirname, 'dist'),
     clean: true,
+    libraryTarget: 'commonjs2',
   },
 
   resolve: {
     extensions: ['.ts', '.js'],
   },
 
+  /**
+   * Prevent Prisma runtime bundling
+   */
   externals: {
     '@prisma/client': 'commonjs @prisma/client',
+    '@prisma/adapter-pg': 'commonjs @prisma/adapter-pg',
     'pg': 'commonjs pg',
+    '@prisma/client/runtime/library':
+      'commonjs @prisma/client/runtime/library'
   },
 
   optimization: {
@@ -27,6 +34,7 @@ module.exports = {
     new NxAppWebpackPlugin({
       target: 'node',
       compiler: 'tsc',
+
       main: './src/main.ts',
       tsConfig: './tsconfig.app.json',
 
@@ -40,8 +48,18 @@ module.exports = {
       sourceMap: true,
     }),
 
+    /**
+     * Prevent NestJS optional module bundling issues
+     */
     new webpack.IgnorePlugin({
       resourceRegExp: /^@nestjs\/(microservices|websockets|platform-socket.io)$/,
+    }),
+
+    /**
+     * Prevent Prisma optional binary engine bundling
+     */
+    new webpack.IgnorePlugin({
+      resourceRegExp: /(^@prisma\/engines$|^prisma\/lib\/engines$)/,
     }),
   ],
 };
