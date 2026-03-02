@@ -1,20 +1,16 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
 import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  private pool: Pool;
 
   constructor(configService: ConfigService) {
-    const connectionString = configService.getDatabaseUrl();
-    const pool = new Pool({ connectionString });
-    const adapter = new PrismaPg(pool);
-    super({ adapter });
-    this.pool = pool;
-  }
+  const connectionString = configService.getDatabaseUrl();
+  const adapter = new PrismaPg({ connectionString });
+  super({ adapter });
+}
 
   async onModuleInit() {
     await this.$connect();
@@ -22,6 +18,5 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleDestroy() {
     await this.$disconnect();
-    await this.pool.end();
   }
 }
