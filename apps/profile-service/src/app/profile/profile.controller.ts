@@ -30,7 +30,7 @@ import { CreateEmploymentHistoryDto } from './dto/create-employment-history.dto'
 import { UpdateEmploymentHistoryDto } from './dto/update-employment-history.dto';
 import { CreateLanguageDto } from './dto/create-language.dto';
 import { UpdateLanguageDto } from './dto/update-language.dto';
-import { TailoringLevel } from '../../generated/prisma';
+import { TailoringLevel } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller()

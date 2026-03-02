@@ -5,7 +5,7 @@ import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { ImportUpworkDto } from './dto/import-upwork.dto';
 import { PaginationDto } from './dto/pagination.dto';
-import { PortfolioType, TailoringLevel } from '../../generated/prisma';
+import { PortfolioType, TailoringLevel } from '@prisma/client';
 
 @Injectable()
 export class ProfileService {

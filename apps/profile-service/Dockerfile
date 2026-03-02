@@ -6,6 +6,7 @@ WORKDIR /app
 
 ENV NODE_OPTIONS="--enable-source-maps"
 ENV PRISMA_CLIENT_ENGINE_TYPE="binary"
+
 # Copy generated package.json from build output and install dependencies
 COPY apps/profile-service/dist/package*.json ./
 RUN npm install --omit=dev
@@ -13,9 +14,11 @@ RUN npm install --omit=dev
 # Copy the COMPILED shared library (not source)
 COPY libs/shared/dist ./node_modules/@org/shared/
 
-# Copy Prisma schema, engine, and configuration
+# Copy Prisma schema and configuration
 COPY apps/profile-service/prisma ./prisma/
 COPY apps/profile-service/prisma.config.ts ./
+
+# Generate Prisma client to default location (node_modules/@prisma/client)
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Copy built application code

@@ -1,4 +1,4 @@
-import { PrismaClient, PreferenceCategory } from '../src/generated/prisma';
+import { PrismaClient, PreferenceCategory } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as dotenv from 'dotenv';
