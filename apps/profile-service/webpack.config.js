@@ -3,6 +3,13 @@ const { join } = require('path');
 const webpack = require('webpack');
 
 module.exports = {
+  target: 'node',
+  
+  externals: {
+    '@prisma/client': 'commonjs @prisma/client',
+    'prisma': 'commonjs prisma',
+  },
+
   output: {
     path: join(__dirname, 'dist'),
     clean: true,
@@ -10,11 +17,13 @@ module.exports = {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
   },
+
   resolve: {
     alias: {
       '@org/shared': join(__dirname, '../../libs/shared/src/index.ts'),
     },
   },
+
   plugins: [
     new NxAppWebpackPlugin({
       target: 'node',
@@ -27,6 +36,7 @@ module.exports = {
       generatePackageJson: true,
       sourceMap: true,
     }),
+
     new webpack.IgnorePlugin({
       resourceRegExp: /^pg-native$/,
     }),
