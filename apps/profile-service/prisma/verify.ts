@@ -1,4 +1,4 @@
-import { PrismaClient, TailoringLevel } from '../src/generated/prisma';
+import { PrismaClient, TailoringLevel } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as dotenv from 'dotenv';

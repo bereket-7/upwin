@@ -5,11 +5,11 @@ import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
 import { ImportUpworkDto } from './dto/import-upwork.dto';
 import { PaginationDto } from './dto/pagination.dto';
-import { PortfolioType, TailoringLevel } from '../../generated/prisma';
+import { PortfolioType, TailoringLevel } from '@prisma/client';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // ==================== PROFILE OPERATIONS ====================
 
@@ -27,6 +27,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -35,6 +40,11 @@ export class ProfileService {
         certificates: {
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -52,6 +62,11 @@ export class ProfileService {
           },
           portfolioItems: true,
           workHistory: true,
+          employmentHistory: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
           education: {
             orderBy: {
               createdAt: 'desc',
@@ -60,6 +75,11 @@ export class ProfileService {
           certificates: {
             orderBy: {
               createdAt: 'desc',
+            },
+          },
+          languages: {
+            orderBy: {
+              createdAt: 'asc',
             },
           },
         },
@@ -87,6 +107,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -95,6 +120,11 @@ export class ProfileService {
         certificates: {
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -106,12 +136,23 @@ export class ProfileService {
    * Creates profile if doesn't exist, adds Upwork portfolio items
    */
   async importFromUpwork(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, certificates, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
       where: { userId },
     });
+
+    // Check if upworkId is already used by another profile
+    if (upworkId) {
+      const existingUpworkProfile = await this.prisma.profile.findUnique({
+        where: { upworkId },
+      });
+
+      if (existingUpworkProfile && existingUpworkProfile.userId !== userId) {
+        throw new ConflictException('This Upwork ID is already associated with another profile');
+      }
+    }
 
     if (!profile) {
       // Create profile with Upwork data
@@ -131,6 +172,7 @@ export class ProfileService {
           totalEarnings,
           totalJobs,
           totalHours,
+          bio: bio?.trim(),
           syncedAt: new Date(),
         },
       });
@@ -152,6 +194,7 @@ export class ProfileService {
           totalEarnings,
           totalJobs,
           totalHours,
+          bio: bio?.trim(),
           syncedAt: new Date(),
         },
       });
@@ -193,14 +236,59 @@ export class ProfileService {
       // Remove duplicates based on school, degree, and dates
       const uniqueEducation = normalizedEducation.filter((item, index, self) =>
         index === self.findIndex((t) => (
-          t.school === item.school && 
-          t.degree === item.degree && 
+          t.school === item.school &&
+          t.degree === item.degree &&
           t.dates === item.dates
         ))
       );
 
       await this.prisma.educationItem.createMany({
         data: uniqueEducation,
+      });
+    }
+
+    // Add employment history items
+    if (employmentHistory && employmentHistory.length > 0) {
+      await this.prisma.employmentHistoryItem.createMany({
+        data: employmentHistory.map(item => ({
+          ...item,
+          title: item.title.trim(),
+          company: item.company.trim(),
+          location: item.location?.trim(),
+          description: item.description?.trim(),
+          startDate: item.startDate?.trim(),
+          endDate: item.endDate?.trim(),
+          profileId: profile.id,
+        })),
+      });
+    }
+
+    // Add language items
+    if (languages && languages.length > 0) {
+      await this.prisma.languageItem.createMany({
+        data: languages.map(item => ({
+          ...item,
+          language: item.language.trim(),
+          level: item.level.trim(),
+          profileId: profile.id,
+        })),
+      });
+    }
+
+    // Add certificate items
+    if (certificates && certificates.length > 0) {
+      await this.prisma.certificateItem.createMany({
+        data: certificates.map(item => ({
+          ...item,
+          name: item.name.trim(),
+          issuer: item.issuer?.trim(),
+          issueDate: item.issueDate?.trim(),
+          expiryDate: item.expiryDate?.trim(),
+          credentialId: item.credentialId?.trim(),
+          url: item.url?.trim(),
+          description: item.description?.trim(),
+          profileId: profile.id,
+        })),
       });
     }
 
@@ -215,6 +303,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -223,6 +316,11 @@ export class ProfileService {
         certificates: {
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -234,7 +332,7 @@ export class ProfileService {
    * Custom portfolio items are not affected
    */
   async syncAllUpworkData(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, certificates, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
 
     // Get or create profile
     let profile = await this.prisma.profile.findUnique({
@@ -246,10 +344,22 @@ export class ProfileService {
       return this.importFromUpwork(userId, upworkData);
     }
 
+    // Check if upworkId is already used by another profile
+    if (upworkId) {
+      const existingUpworkProfile = await this.prisma.profile.findUnique({
+        where: { upworkId },
+      });
+
+      if (existingUpworkProfile && existingUpworkProfile.userId !== userId) {
+        throw new ConflictException('This Upwork ID is already associated with another profile');
+      }
+    }
+
     // Update profile with latest Upwork data
     profile = await this.prisma.profile.update({
       where: { userId },
       data: {
+        bio: bio?.trim(),
         name: profileName,
         avatar,
         location,
@@ -282,6 +392,24 @@ export class ProfileService {
     });
 
     await this.prisma.educationItem.deleteMany({
+      where: {
+        profileId: profile.id,
+      },
+    });
+
+    await this.prisma.employmentHistoryItem.deleteMany({
+      where: {
+        profileId: profile.id,
+      },
+    });
+
+    await this.prisma.languageItem.deleteMany({
+      where: {
+        profileId: profile.id,
+      },
+    });
+
+    await this.prisma.certificateItem.deleteMany({
       where: {
         profileId: profile.id,
       },
@@ -323,14 +451,59 @@ export class ProfileService {
       // Remove duplicates based on school, degree, and dates
       const uniqueEducation = normalizedEducation.filter((item, index, self) =>
         index === self.findIndex((t) => (
-          t.school === item.school && 
-          t.degree === item.degree && 
+          t.school === item.school &&
+          t.degree === item.degree &&
           t.dates === item.dates
         ))
       );
 
       await this.prisma.educationItem.createMany({
         data: uniqueEducation,
+      });
+    }
+
+    // Add new employment history items
+    if (employmentHistory && employmentHistory.length > 0) {
+      await this.prisma.employmentHistoryItem.createMany({
+        data: employmentHistory.map(item => ({
+          ...item,
+          title: item.title.trim(),
+          company: item.company.trim(),
+          location: item.location?.trim(),
+          description: item.description?.trim(),
+          startDate: item.startDate?.trim(),
+          endDate: item.endDate?.trim(),
+          profileId: profile.id,
+        })),
+      });
+    }
+
+    // Add new language items
+    if (languages && languages.length > 0) {
+      await this.prisma.languageItem.createMany({
+        data: languages.map(item => ({
+          ...item,
+          language: item.language.trim(),
+          level: item.level.trim(),
+          profileId: profile.id,
+        })),
+      });
+    }
+
+    // Add new certificate items
+    if (certificates && certificates.length > 0) {
+      await this.prisma.certificateItem.createMany({
+        data: certificates.map(item => ({
+          ...item,
+          name: item.name.trim(),
+          issuer: item.issuer?.trim(),
+          issueDate: item.issueDate?.trim(),
+          expiryDate: item.expiryDate?.trim(),
+          credentialId: item.credentialId?.trim(),
+          url: item.url?.trim(),
+          description: item.description?.trim(),
+          profileId: profile.id,
+        })),
       });
     }
 
@@ -345,6 +518,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -353,6 +531,11 @@ export class ProfileService {
         certificates: {
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -486,6 +669,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -494,6 +682,11 @@ export class ProfileService {
         certificates: {
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -617,6 +810,11 @@ export class ProfileService {
         },
         portfolioItems: true,
         workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
         education: {
           orderBy: {
             createdAt: 'desc',
@@ -625,6 +823,11 @@ export class ProfileService {
         certificates: {
           orderBy: {
             createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
           },
         },
       },
@@ -893,5 +1096,182 @@ export class ProfileService {
 
     return { message: 'Certificate entry deleted successfully' };
   }
-}
 
+  // ==================== EMPLOYMENT HISTORY OPERATIONS ====================
+
+  /**
+   * Create a new employment history entry
+   */
+  async createEmploymentHistory(userId: string, dto: any) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    // Normalize data
+    const normalizedData = {
+      title: dto.title.trim(),
+      company: dto.company.trim(),
+      location: dto.location?.trim(),
+      description: dto.description?.trim(),
+      startDate: dto.startDate?.trim(),
+      endDate: dto.endDate?.trim(),
+      isCurrent: dto.isCurrent ?? false,
+      profileId: profile.id,
+    };
+
+    return this.prisma.employmentHistoryItem.create({
+      data: normalizedData,
+    });
+  }
+
+  /**
+   * Get all employment history entries for a user
+   */
+  async getEmploymentHistory(userId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.employmentHistoryItem.findMany({
+      where: { profileId: profile.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Get a single employment history entry
+   */
+  async getEmploymentHistoryItem(userId: string, id: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    const item = await this.prisma.employmentHistoryItem.findUnique({
+      where: { id },
+    });
+
+    if (!item || item.profileId !== profile.id) {
+      throw new NotFoundException('Employment history entry not found');
+    }
+
+    return item;
+  }
+
+  /**
+   * Update an employment history entry
+   */
+  async updateEmploymentHistory(userId: string, id: string, dto: any) {
+    await this.getEmploymentHistoryItem(userId, id);
+
+    // Normalize data
+    const normalizedData: any = {};
+    if (dto.title) normalizedData.title = dto.title.trim();
+    if (dto.company) normalizedData.company = dto.company.trim();
+    if (dto.location !== undefined) normalizedData.location = dto.location?.trim();
+    if (dto.description !== undefined) normalizedData.description = dto.description?.trim();
+    if (dto.startDate !== undefined) normalizedData.startDate = dto.startDate?.trim();
+    if (dto.endDate !== undefined) normalizedData.endDate = dto.endDate?.trim();
+    if (dto.isCurrent !== undefined) normalizedData.isCurrent = dto.isCurrent;
+
+    return this.prisma.employmentHistoryItem.update({
+      where: { id },
+      data: normalizedData,
+    });
+  }
+
+  /**
+   * Delete an employment history entry
+   */
+  async deleteEmploymentHistory(userId: string, id: string) {
+    await this.getEmploymentHistoryItem(userId, id);
+
+    await this.prisma.employmentHistoryItem.delete({
+      where: { id },
+    });
+
+    return { message: 'Employment history entry deleted successfully' };
+  }
+
+  // ==================== LANGUAGE OPERATIONS ====================
+
+  /**
+   * Create a new language entry
+   */
+  async createLanguage(userId: string, dto: any) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.languageItem.create({
+      data: {
+        language: dto.language.trim(),
+        level: dto.level.trim(),
+        profileId: profile.id,
+      },
+    });
+  }
+
+  /**
+   * Get all language entries for a user
+   */
+  async getLanguages(userId: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.languageItem.findMany({
+      where: { profileId: profile.id },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Get a single language entry
+   */
+  async getLanguageItem(userId: string, id: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    const item = await this.prisma.languageItem.findUnique({
+      where: { id },
+    });
+
+    if (!item || item.profileId !== profile.id) {
+      throw new NotFoundException('Language entry not found');
+    }
+
+    return item;
+  }
+
+  /**
+   * Update a language entry
+   */
+  async updateLanguage(userId: string, id: string, dto: any) {
+    await this.getLanguageItem(userId, id);
+
+    const normalizedData: any = {};
+    if (dto.language) normalizedData.language = dto.language.trim();
+    if (dto.level) normalizedData.level = dto.level.trim();
+
+    return this.prisma.languageItem.update({
+      where: { id },
+      data: normalizedData,
+    });
+  }
+
+  /**
+   * Delete a language entry
+   */
+  async deleteLanguage(userId: string, id: string) {
+    await this.getLanguageItem(userId, id);
+
+    await this.prisma.languageItem.delete({
+      where: { id },
+    });
+
+    return { message: 'Language entry deleted successfully' };
+  }
+
+  // ==================== BIO OPERATIONS ====================
+
+  /**
+   * Update profile bio
+   */
+  async updateBio(userId: string, bio: string) {
+    const profile = await this.getOrCreateProfile(userId);
+
+    return this.prisma.profile.update({
+      where: { id: profile.id },
+      data: { bio: bio.trim() },
+    });
+  }
+}

@@ -39,6 +39,9 @@ jobs:
         run: |
           cd apps/profile-service
           npx prisma generate
+          
+      - name: Clean Old Build Output
+        run: rm -rf dist apps/profile-service/dist || true
 
       - name: Build Profile Service
         run: npx nx build profile-service --configuration=production
