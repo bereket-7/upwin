@@ -5,7 +5,6 @@ import { firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 
 export interface CreateProposalDto {
-  userId: string;
   profileId: string;
   jobId?: string;
   jobUrl?: string;
@@ -53,7 +52,7 @@ export class ProposalClientService {
   ): Promise<ProposalResponse | null> {
     try {
       this.logger.log(
-        `Saving proposal for user ${dto.userId}, profile ${dto.profileId}`,
+        `Saving proposal for profile ${dto.profileId}`,
       );
 
       const headers: Record<string, string> = {

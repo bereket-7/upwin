@@ -4,6 +4,13 @@ import type { Request, Response } from 'express';
 import { AiStreamingService } from './ai-streaming.service';
 import { StreamProposalDto } from '../dto/stream-proposal.dto';
 
+interface AuthenticatedRequest extends Request {
+  user: {
+    userId: string;
+    email?: string;
+  };
+}
+
 @Controller('ai/proposals')
 @UseGuards(AuthGuard('jwt'))
 export class AiStreamingController {
@@ -15,7 +22,7 @@ export class AiStreamingController {
   async streamProposal(
     @Body() dto: StreamProposalDto,
     @Headers('authorization') authorization: string,
-    @Req() request: Request,
+    @Req() request: AuthenticatedRequest,
     @Res() response: Response,
   ): Promise<void> {
     this.logger.log(`Streaming proposal request for profile: ${dto.profileId}`);
@@ -41,7 +48,7 @@ export class AiStreamingController {
 
     try {
       // Start streaming
-      await this.streamingService.streamProposal(dto, authorization, response);
+      await this.streamingService.streamProposal(request.user.userId, dto, authorization, response);
     } catch (error) {
       this.logger.error('Streaming error:', error);
       
