@@ -34,10 +34,6 @@ export class JobQuestionDto {
 export class AnswerQuestionsDto {
   @IsString()
   @IsNotEmpty()
-  userId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   profileId!: string;
 
   @IsString()
