@@ -3,10 +3,6 @@ import { IsString, IsOptional, IsNotEmpty, IsObject } from 'class-validator';
 export class CreateProposalDto {
   @IsString()
   @IsNotEmpty()
-  userId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   profileId!: string;
 
   @IsString()

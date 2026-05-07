@@ -1,25 +1,30 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { QueryProposalsDto } from './dto/query-proposals.dto';
+import { AppConfigService } from '../config/config.service';
 
 @Injectable()
 export class ProposalService {
   private readonly logger = new Logger(ProposalService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: AppConfigService,
+  ) {}
 
   /**
    * Create a new proposal with initial version
    */
-  async createProposal(dto: CreateProposalDto) {
-    this.logger.log(`Creating proposal for user ${dto.userId}`);
+  async createProposal(userId: string, dto: CreateProposalDto, authorization?: string) {
+    this.logger.log(`Creating proposal for user ${userId}`);
+    await this.assertProfileBelongsToUser(dto.profileId, authorization);
 
     const proposal = await this.prisma.proposal.create({
       data: {
-        userId: dto.userId,
+        userId,
         profileId: dto.profileId,
         jobId: dto.jobId,
         jobUrl: dto.jobUrl,
@@ -44,15 +49,15 @@ export class ProposalService {
     return proposal;
   }
 
-  /**
+   /**
    * Add a new version to an existing proposal
    */
-  async createVersion(proposalId: string, dto: CreateVersionDto) {
+  async createVersion(userId: string, proposalId: string, dto: CreateVersionDto) {
     this.logger.log(`Creating new version for proposal ${proposalId}`);
 
     // Get current proposal
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id: proposalId },
+    const proposal = await this.prisma.proposal.findFirst({
+      where: { id: proposalId, userId },
       include: { versions: true },
     });
 
@@ -82,14 +87,14 @@ export class ProposalService {
     return newVersion;
   }
 
-  /**
+   /**
    * Update proposal status
    */
-  async updateStatus(proposalId: string, dto: UpdateStatusDto) {
+  async updateStatus(userId: string, proposalId: string, dto: UpdateStatusDto) {
     this.logger.log(`Updating status for proposal ${proposalId} to ${dto.status}`);
 
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id: proposalId },
+    const proposal = await this.prisma.proposal.findFirst({
+      where: { id: proposalId, userId },
     });
 
     if (!proposal) {
@@ -110,14 +115,14 @@ export class ProposalService {
     return updated;
   }
 
-  /**
+   /**
    * Get proposal by ID with all versions
    */
-  async getProposalById(proposalId: string) {
+  async getProposalById(userId: string, proposalId: string) {
     this.logger.log(`Fetching proposal ${proposalId}`);
 
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id: proposalId },
+    const proposal = await this.prisma.proposal.findFirst({
+      where: { id: proposalId, userId },
       include: {
         versions: {
           orderBy: { version: 'asc' },
@@ -132,16 +137,15 @@ export class ProposalService {
     return proposal;
   }
 
-  /**
+   /**
    * List proposals with filters and pagination
    */
-  async listProposals(query: QueryProposalsDto) {
-    const { userId, profileId, jobId, status, page = 1, limit = 10 } = query;
+  async listProposals(userId: string, query: QueryProposalsDto) {
+    const { profileId, jobId, status, page = 1, limit = 10 } = query;
 
     this.logger.log(`Listing proposals with filters: ${JSON.stringify(query)}`);
 
-    const where: any = {};
-    if (userId) where.userId = userId;
+    const where: any = { userId };
     if (profileId) where.profileId = profileId;
     if (jobId) where.jobId = jobId;
     if (status) where.status = status;
@@ -175,14 +179,14 @@ export class ProposalService {
     };
   }
 
-  /**
+   /**
    * Delete proposal (cascade deletes versions)
    */
-  async deleteProposal(proposalId: string) {
+  async deleteProposal(userId: string, proposalId: string) {
     this.logger.log(`Deleting proposal ${proposalId}`);
 
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id: proposalId },
+    const proposal = await this.prisma.proposal.findFirst({
+      where: { id: proposalId, userId },
     });
 
     if (!proposal) {
@@ -195,5 +199,38 @@ export class ProposalService {
 
     this.logger.log(`Proposal ${proposalId} deleted`);
     return { message: 'Proposal deleted successfully' };
+  }
+
+  private async assertProfileBelongsToUser(profileId: string, authorization?: string) {
+    if (!authorization) {
+      throw new UnauthorizedException('Authorization header is required');
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.configService.profileServiceUrl}/profile/${profileId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: authorization,
+        },
+      });
+    } catch (error) {
+      this.logger.error('Failed to reach profile-service while validating profile ownership', error);
+      throw new BadGatewayException('Failed to validate profile ownership');
+    }
+
+    if (response.ok) {
+      return;
+    }
+
+    if (response.status === 401) {
+      throw new UnauthorizedException('Invalid authorization token');
+    }
+
+    if (response.status === 403 || response.status === 404) {
+      throw new NotFoundException(`Profile ${profileId} not found`);
+    }
+
+    throw new BadGatewayException('Failed to validate profile ownership');
   }
 }
