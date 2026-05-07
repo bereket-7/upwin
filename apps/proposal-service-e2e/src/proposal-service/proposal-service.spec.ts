@@ -1,10 +1,24 @@
 import axios from 'axios';
 
-describe('GET /api', () => {
-  it('should return a message', async () => {
-    const res = await axios.get(`/api`);
+describe('Proposal API guards', () => {
+  it('rejects proposal listing without a JWT', async () => {
+    await expect(axios.get('/api/proposals')).rejects.toMatchObject({
+      response: {
+        status: 401,
+      },
+    });
+  });
 
-    expect(res.status).toBe(200);
-    expect(res.data).toEqual({ message: 'Hello API' });
+  it('rejects proposal creation without a JWT', async () => {
+    await expect(
+      axios.post('/api/proposals', {
+        profileId: 'profile-1',
+        content: 'proposal content',
+      })
+    ).rejects.toMatchObject({
+      response: {
+        status: 401,
+      },
+    });
   });
 });
