@@ -3,6 +3,12 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:8915code@localhost:5432/upwin_auth';
+const adminPassword = process.env.ADMIN_SEED_PASSWORD;
+
+if (!adminPassword) {
+  throw new Error('ADMIN_SEED_PASSWORD must be set before seeding the admin user');
+}
+
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
@@ -10,7 +16,7 @@ async function main() {
   console.log('Seeding database...');
 
   // Hash password for admin user
-  const hashedPassword = await bcrypt.hash('Admin@123', 10);
+  const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
   // Create admin user
   const admin = await prisma.user.upsert({
@@ -29,7 +35,6 @@ async function main() {
 
   console.log('Admin user created:', admin.email);
   console.log('Email: admin@upwin.com');
-  console.log('Password: Admin@123');
 }
 
 main()
