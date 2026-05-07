@@ -37,5 +37,4 @@ async function bootstrap() {
     `📝 Generate Proposal: POST http://localhost:${port}/${globalPrefix}/generate-proposal`,
   );
 }
-//redploy
 bootstrap();
