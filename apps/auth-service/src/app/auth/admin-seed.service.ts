@@ -15,6 +15,12 @@ export class AdminSeedService implements OnModuleInit {
   private async seedAdminUser() {
     try {
       const adminEmail = 'admin@upwin.com';
+      const adminPassword = process.env.ADMIN_SEED_PASSWORD;
+
+      if (!adminPassword) {
+        this.logger.warn('Skipping admin seed because ADMIN_SEED_PASSWORD is not set');
+        return;
+      }
       
       // Check if admin already exists
       const existingAdmin = await this.prisma.user.findUnique({
@@ -27,7 +33,7 @@ export class AdminSeedService implements OnModuleInit {
       }
 
       // Create admin user
-      const hashedPassword = await hashPassword('Admin@123');
+      const hashedPassword = await hashPassword(adminPassword);
       
       const admin = await this.prisma.user.create({
         data: {
@@ -42,7 +48,6 @@ export class AdminSeedService implements OnModuleInit {
       });
 
       this.logger.log(`Admin user created successfully: ${admin.email}`);
-      this.logger.log('Default credentials - Email: admin@upwin.com, Password: Admin@123');
     } catch (error) {
       this.logger.error('Failed to seed admin user:', error);
     }
