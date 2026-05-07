@@ -1,7 +1,14 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Logger, UseGuards, Headers } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Logger, UseGuards, Headers, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from './ai.service';
 import { GenerateProposalDto, ProposalResponseDto } from './dto/generate-proposal.dto';
+
+interface AuthenticatedRequest {
+  user: {
+    userId: string;
+    email?: string;
+  };
+}
 
 @Controller('generate-proposal')
 @UseGuards(AuthGuard('jwt'))
@@ -14,9 +21,10 @@ export class AiController {
   @HttpCode(HttpStatus.OK)
   async generateProposal(
     @Body() dto: GenerateProposalDto,
-    @Headers('authorization') authorization: string
+    @Headers('authorization') authorization: string,
+    @Request() req: AuthenticatedRequest
   ): Promise<ProposalResponseDto> {
     this.logger.log(`Received proposal generation request for profile: ${dto.profileId}`);
-    return this.aiService.generateProposal(dto, authorization);
+    return this.aiService.generateProposal(req.user.userId, dto, authorization);
   }
 }

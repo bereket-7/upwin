@@ -18,12 +18,12 @@ export class AiService {
     private readonly proposalClient: ProposalClientService,
   ) {}
 
-  async generateProposal(dto: GenerateProposalDto, authorization: string): Promise<ProposalResponseDto> {
-    const { profileId, jobDescription, userId, jobId, jobUrl, jobTitle } = dto;
+  async generateProposal(userId: string, dto: GenerateProposalDto, authorization: string): Promise<ProposalResponseDto> {
+    const { profileId, jobDescription, jobId, jobUrl, jobTitle } = dto;
 
     try {
       // Step 1: Fetch profile data from profile-service
-      this.logger.log(`Starting proposal generation for profile: ${profileId}`);
+      this.logger.log(`Starting proposal generation for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
 
       // Step 2: Retrieve RAG context (Phase 2)
@@ -66,7 +66,6 @@ export class AiService {
 
       // Step 5: Auto-save to proposal-service (non-blocking)
       this.saveProposalAsync(
-        userId,
         profileId,
         jobId,
         jobUrl,
@@ -124,7 +123,6 @@ export class AiService {
    * Save proposal asynchronously - does not block response
    */
   private saveProposalAsync(
-    userId: string,
     profileId: string,
     jobId: string | undefined,
     jobUrl: string | undefined,
@@ -137,7 +135,6 @@ export class AiService {
     // Fire and forget - don't await
     this.proposalClient
       .saveProposal({
-        userId,
         profileId,
         jobId,
         jobUrl,
