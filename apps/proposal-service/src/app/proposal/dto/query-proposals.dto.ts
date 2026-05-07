@@ -10,10 +10,6 @@ export enum ProposalStatus {
 export class QueryProposalsDto {
   @IsString()
   @IsOptional()
-  userId?: string;
-
-  @IsString()
-  @IsOptional()
   profileId?: string;
 
   @IsString()
