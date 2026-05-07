@@ -131,6 +131,50 @@ export class ProfileService {
     });
   }
 
+  async getProfileByIdForUser(userId: string, profileId: string) {
+    const profile = await this.prisma.profile.findFirst({
+      where: { id: profileId, userId },
+      include: {
+        preferences: {
+          include: {
+            preference: true,
+          },
+        },
+        portfolioItems: true,
+        workHistory: true,
+        employmentHistory: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        education: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        certificates: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        languages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    return {
+      ...profile,
+      selectedPreferences: profile.preferences.map(pp => pp.preference),
+    };
+  }
+
   /**
    * Import profile and portfolio items from Upwork
    * Creates profile if doesn't exist, adds Upwork portfolio items
