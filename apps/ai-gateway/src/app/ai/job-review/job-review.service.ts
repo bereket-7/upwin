@@ -13,12 +13,12 @@ export class JobReviewService {
     private readonly geminiConfig: GeminiConfig,
   ) {}
 
-  async reviewJob(dto: ReviewJobDto, authorization: string): Promise<JobReviewResponseDto> {
+  async reviewJob(userId: string, dto: ReviewJobDto, authorization: string): Promise<JobReviewResponseDto> {
     const { profileId, jobDescription, jobTitle, jobBudget, clientInfo } = dto;
 
     try {
       // Step 1: Fetch profile
-      this.logger.log(`Reviewing job for profile: ${profileId}`);
+      this.logger.log(`Reviewing job for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
 
       // Step 2: Analyze match scores

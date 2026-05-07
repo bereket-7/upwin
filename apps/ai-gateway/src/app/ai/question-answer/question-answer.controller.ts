@@ -1,7 +1,14 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Logger, UseGuards, Headers } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Logger, UseGuards, Headers, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { QuestionAnswerService } from './question-answer.service';
 import { AnswerQuestionsDto, AnswerQuestionsResponseDto } from '../dto/answer-questions.dto';
+
+interface AuthenticatedRequest {
+  user: {
+    userId: string;
+    email?: string;
+  };
+}
 
 @Controller('ai/jobs/questions')
 @UseGuards(AuthGuard('jwt'))
@@ -14,9 +21,10 @@ export class QuestionAnswerController {
   @HttpCode(HttpStatus.OK)
   async answerQuestions(
     @Body() dto: AnswerQuestionsDto,
-    @Headers('authorization') authorization: string
+    @Headers('authorization') authorization: string,
+    @Request() req: AuthenticatedRequest
   ): Promise<AnswerQuestionsResponseDto> {
     this.logger.log(`Received request to answer ${dto.questions.length} questions for profile: ${dto.profileId}`);
-    return this.questionAnswerService.answerQuestions(dto, authorization);
+    return this.questionAnswerService.answerQuestions(req.user.userId, dto, authorization);
   }
 }
