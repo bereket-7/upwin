@@ -178,6 +178,10 @@ export class AuthController {
 
   @Get('success')
   async success(@Query('code') code: string) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new BadRequestException('Debug auth success endpoint is disabled in production');
+    }
+
     return {
       message: 'SSO Login Successful',
       authCode: code,
@@ -187,6 +191,10 @@ export class AuthController {
 
   @Get('test-dashboard')
   async testDashboard(@Res() res: Response) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new BadRequestException('Test dashboard is disabled in production');
+    }
+
     const htmlPath = join(__dirname, '..', '..', 'assets', 'templates', 'test-auth.html');
     const html = readFileSync(htmlPath, 'utf8');
     res.setHeader('Content-Type', 'text/html');
