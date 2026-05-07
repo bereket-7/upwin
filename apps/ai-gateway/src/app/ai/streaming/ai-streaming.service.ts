@@ -20,12 +20,12 @@ export class AiStreamingService {
     private readonly proposalClient: ProposalClientService,
   ) {}
 
-  async streamProposal(dto: StreamProposalDto, authorization: string, response: Response): Promise<void> {
-    const { profileId, jobDescription, tone, style, userId, jobId, jobUrl, jobTitle } = dto;
+  async streamProposal(userId: string, dto: StreamProposalDto, authorization: string, response: Response): Promise<void> {
+    const { profileId, jobDescription, tone, style, jobId, jobUrl, jobTitle } = dto;
 
     try {
       // Step 1: Fetch profile data
-      this.logger.log(`Starting streaming proposal for profile: ${profileId}`);
+      this.logger.log(`Starting streaming proposal for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
 
       // Apply overrides if provided
@@ -61,7 +61,6 @@ export class AiStreamingService {
       // Step 5: Save to proposal-service after streaming completes
       this.logger.log('Streaming completed, saving proposal');
       await this.saveStreamedProposal(
-        userId,
         profileId,
         jobId,
         jobUrl,
@@ -121,7 +120,6 @@ export class AiStreamingService {
    * Sends save_success or save_error events
    */
   private async saveStreamedProposal(
-    userId: string,
     profileId: string,
     jobId: string | undefined,
     jobUrl: string | undefined,
@@ -134,7 +132,6 @@ export class AiStreamingService {
   ): Promise<void> {
     try {
       const result = await this.proposalClient.saveProposal({
-        userId,
         profileId,
         jobId,
         jobUrl,

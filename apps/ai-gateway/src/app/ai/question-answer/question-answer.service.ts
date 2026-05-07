@@ -25,12 +25,12 @@ export class QuestionAnswerService {
     private readonly geminiConfig: GeminiConfig,
   ) {}
 
-  async answerQuestions(dto: AnswerQuestionsDto, authorization: string): Promise<AnswerQuestionsResponseDto> {
+  async answerQuestions(userId: string, dto: AnswerQuestionsDto, authorization: string): Promise<AnswerQuestionsResponseDto> {
     const { profileId, jobDescription, jobTitle, questions } = dto;
 
     try {
       // Step 1: Fetch profile
-      this.logger.log(`Answering ${questions.length} questions for profile: ${profileId}`);
+      this.logger.log(`Answering ${questions.length} questions for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
 
       // Step 2: Process each question
