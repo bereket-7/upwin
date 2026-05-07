@@ -3,10 +3,6 @@ import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 export class StreamProposalDto {
   @IsString()
   @IsNotEmpty()
-  userId!: string;
-
-  @IsString()
-  @IsNotEmpty()
   profileId!: string;
 
   @IsString()
