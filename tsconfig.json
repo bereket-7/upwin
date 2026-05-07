@@ -7,6 +7,24 @@
     },
     {
       "path": "./apps/auth-service"
+    },
+    {
+      "path": "./apps/proposal-service-e2e"
+    },
+    {
+      "path": "./apps/profile-service-e2e"
+    },
+    {
+      "path": "./apps/proposal-service"
+    },
+    {
+      "path": "./apps/ai-gateway-e2e"
+    },
+    {
+      "path": "./apps/ai-gateway"
+    },
+    {
+      "path": "./apps/auth-service-e2e"
     }
   ]
 }
