@@ -34,5 +34,4 @@ async function bootstrap() {
     `🚀 Proposal Service is running on: http://localhost:${port}/${globalPrefix}`,
   );
 }
-//redeploy
 bootstrap();
