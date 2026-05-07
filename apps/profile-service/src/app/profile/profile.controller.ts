@@ -46,6 +46,15 @@ export class ProfileController {
     return this.profileService.getOrCreateProfile(userId);
   }
 
+  @Get('profile/:id')
+  @Throttle({ medium: { limit: 50, ttl: 10000 } })
+  getProfileById(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string
+  ) {
+    return this.profileService.getProfileByIdForUser(userId, id);
+  }
+
   @Patch()
   @Throttle({ short: { limit: 10, ttl: 1000 } })
   updateProfile(

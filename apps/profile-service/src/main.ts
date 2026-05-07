@@ -1,18 +1,9 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
-
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
-import { ConfigService } from './app/config/config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  // Get config service
-  const configService = app.get(ConfigService);
   
   // Global validation pipe
   app.useGlobalPipes(
@@ -27,9 +18,12 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
   
-  // CORS - allow all for development
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+    : ['http://localhost:3000'];
+
   app.enableCors({
-    origin: '*',
+    origin: allowedOrigins,
     credentials: true,
   });
   
@@ -41,5 +35,4 @@ async function bootstrap() {
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`,
   );
 }
-// redeploy
 bootstrap();
