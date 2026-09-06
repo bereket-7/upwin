@@ -93,7 +93,7 @@ Service will start on: http://localhost:3010/api
 DATABASE_URL="postgresql://postgres:password@localhost:5432/upwin_proposals?schema=public"
 PORT=3010
 NODE_ENV=development
-JWT_SECRET="h9ijhg2qwaszxcvghjuy65trfvgnhjmko09iuytr4rfv0okm"
+JWT_SECRET=change-me-in-local-dev
 ALLOWED_ORIGINS=http://localhost:3000
 AUTH_SERVICE_URL=http://localhost:3008/api
 PROFILE_SERVICE_URL=http://localhost:3009/api
