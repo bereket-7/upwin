@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProfileClient } from '../http/profile.client';
+import { assertProfileOwnedByUser } from '../http/assert-profile-ownership';
 import { GeminiConfig } from '../config/gemini.config';
 import { ReviewJobDto, JobReviewResponseDto } from '../dto/review-job.dto';
 import { Profile } from '../interfaces/profile.interface';
@@ -20,6 +21,7 @@ export class JobReviewService {
       // Step 1: Fetch profile
       this.logger.log(`Reviewing job for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
+      assertProfileOwnedByUser(profile, userId);
 
       // Step 2: Analyze match scores
       const breakdown = this.analyzeMatch(profile, jobDescription, jobBudget);
