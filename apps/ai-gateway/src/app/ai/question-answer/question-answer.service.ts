@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProfileClient } from '../http/profile.client';
+import { assertProfileOwnedByUser } from '../http/assert-profile-ownership';
 import { GeminiConfig } from '../config/gemini.config';
 import { AnswerQuestionsDto, QuestionAnswerDto, AnswerQuestionsResponseDto, JobQuestionDto } from '../dto/answer-questions.dto';
 import { Profile } from '../interfaces/profile.interface';
@@ -32,6 +33,7 @@ export class QuestionAnswerService {
       // Step 1: Fetch profile
       this.logger.log(`Answering ${questions.length} questions for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
+      assertProfileOwnedByUser(profile, userId);
 
       // Step 2: Process each question
       const answers: QuestionAnswerDto[] = [];
