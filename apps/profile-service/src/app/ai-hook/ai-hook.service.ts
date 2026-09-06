@@ -109,12 +109,13 @@ export class AIHookService {
 
   /**
    * Delete a hook
+   * @param profileId Required for user routes (ownership). Omit for admin routes.
    */
   async remove(id: string, profileId?: string) {
     const hook = await this.findOne(id);
 
-    // If profileId is provided, ensure ownership
-    if (profileId && hook.profileId !== profileId) {
+    // User routes always pass profileId; fail closed if ownership does not match
+    if (profileId !== undefined && hook.profileId !== profileId) {
       throw new ForbiddenException('You do not have permission to delete this hook');
     }
 
