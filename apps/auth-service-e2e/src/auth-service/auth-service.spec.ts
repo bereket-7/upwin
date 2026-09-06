@@ -8,4 +8,12 @@ describe('Auth API guards', () => {
       },
     });
   });
+
+  it('rejects account deletion without a JWT', async () => {
+    await expect(axios.delete('/api/auth/account')).rejects.toMatchObject({
+      response: {
+        status: 401,
+      },
+    });
+  });
 });
