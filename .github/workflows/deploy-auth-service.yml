@@ -70,13 +70,17 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          printf '%s\n' "${{ secrets.VPS_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
       - name: Deploy to VPS
         run: |
-          # Install sshpass for password-based SSH
-          sudo apt-get update && sudo apt-get install -y sshpass
-
-          # Deploy using SSH with password
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
+          ssh ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} << 'EOF'
             # Pull the new image
             docker pull ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
             
@@ -107,6 +111,11 @@ jobs:
               -e 'SMTP_PASS=${{ secrets.SMTP_PASS }}' \
               -e 'SMTP_FROM_NAME=${{ secrets.SMTP_FROM_NAME }}' \
               -e 'SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}' \
+              -e 'ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}' \
+              -e 'FRONTEND_URL=${{ secrets.FRONTEND_URL }}' \
+              -e 'ADMIN_SEED_PASSWORD=${{ secrets.ADMIN_SEED_PASSWORD }}' \
+              -e 'PROFILE_SERVICE_URL=${{ secrets.PROFILE_SERVICE_URL }}' \
+              -e 'PROPOSAL_SERVICE_URL=${{ secrets.PROPOSAL_SERVICE_URL }}' \
               ${{ secrets.DOCKER_USERNAME }}/auth-service:staging
             
             # Wait for service to be ready
