@@ -136,6 +136,14 @@ export class ConfigService {
     return process.env.FRONTEND_URL || 'http://localhost:3000';
   }
 
+  getProfileServiceUrl(): string {
+    return process.env.PROFILE_SERVICE_URL || 'http://localhost:3009/api';
+  }
+
+  getProposalServiceUrl(): string {
+    return process.env.PROPOSAL_SERVICE_URL || 'http://localhost:3010/api';
+  }
+
   validateCallbackUrl(url: string): boolean {
     const allowedDomains = [
       'localhost',
