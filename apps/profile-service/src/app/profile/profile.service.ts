@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger, BadGatewayException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '../config/config.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { UpdatePortfolioDto } from './dto/update-portfolio.dto';
@@ -9,7 +10,12 @@ import { PortfolioType, TailoringLevel } from '@prisma/client';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) { }
+  private readonly logger = new Logger(ProfileService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) { }
 
   // ==================== PROFILE OPERATIONS ====================
 
@@ -173,6 +179,52 @@ export class ProfileService {
       ...profile,
       selectedPreferences: profile.preferences.map(pp => pp.preference),
     };
+  }
+
+  /**
+   * Delete the current user's profile (children cascade). No-op 204-style if missing.
+   * Also purges proposals for this profileId via proposal-service when authorization is provided.
+   */
+  async deleteProfileForUser(userId: string, authorization?: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return { message: 'Profile already absent', deleted: false };
+    }
+
+    if (authorization) {
+      await this.purgeProposalsForProfile(profile.id, authorization);
+    }
+
+    await this.prisma.profile.delete({
+      where: { id: profile.id },
+    });
+
+    this.logger.log(`Deleted profile ${profile.id} for user ${userId}`);
+    return { message: 'Profile deleted successfully', deleted: true };
+  }
+
+  private async purgeProposalsForProfile(profileId: string, authorization: string) {
+    const baseUrl = this.configService.getProposalServiceUrl().replace(/\/$/, '');
+    const url = `${baseUrl}/proposals/me?profileId=${encodeURIComponent(profileId)}`;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'DELETE',
+        headers: { Authorization: authorization },
+      });
+    } catch (error) {
+      this.logger.error('Failed to reach proposal-service while purging proposals', error);
+      throw new BadGatewayException('Failed to purge proposals for profile');
+    }
+
+    if (!response.ok) {
+      this.logger.error(`Proposal purge failed with status ${response.status}`);
+      throw new BadGatewayException('Failed to purge proposals for profile');
+    }
   }
 
   /**
