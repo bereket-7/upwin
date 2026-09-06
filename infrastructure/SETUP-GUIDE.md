@@ -153,10 +153,12 @@ docker logs auth-service-staging  # Check for errors
 
 ## What's Next?
 
-1. ✅ Update your frontend to use: `https://upxl.sandbox.be.tibebai.com`
+1. ✅ Update your frontend (separate repo) to use: `https://upxl.sandbox.be.tibebai.com`
 2. ✅ Update GitHub secrets:
-   - `ALLOWED_ORIGINS=https://upxl.sandbox.be.tibebai.com`
+   - `ALLOWED_ORIGINS=https://upxl.sandbox.be.tibebai.com` (frontend origin for credentialed CORS; no `*`)
+   - `FRONTEND_URL=https://upxl.sandbox.be.tibebai.com` (or the real FE origin if different)
    - `API_URL=https://upxl.sandbox.be.tibebai.com`
+   - See root [README.md](../README.md) **Frontend integration** and **Required GitHub Actions secrets**
 3. ✅ Test all API endpoints with Postman
 4. ✅ Monitor logs for any issues
 
