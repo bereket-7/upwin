@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger, BadGatewayException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { hashPassword, comparePassword, generateVerificationToken, addHours } from '@org/shared';
 import { PrismaService } from '../prisma/prisma.service';
@@ -68,6 +68,8 @@ export interface VerifyEmailDto {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
@@ -456,5 +458,51 @@ export class AuthService {
     });
 
     return { message: 'Password changed successfully' };
+  }
+
+  /**
+   * Cascade account deletion: profile → proposals → auth user.
+   * Aborts before deleting the auth user if a downstream purge fails.
+   */
+  async deleteAccount(userId: string, authorization: string): Promise<{ message: string }> {
+    if (!authorization) {
+      throw new UnauthorizedException('Authorization header is required');
+    }
+
+    await this.forwardDelete(
+      `${this.configService.getProfileServiceUrl().replace(/\/$/, '')}/me`,
+      authorization,
+      'profile-service'
+    );
+
+    await this.forwardDelete(
+      `${this.configService.getProposalServiceUrl().replace(/\/$/, '')}/proposals/me`,
+      authorization,
+      'proposal-service'
+    );
+
+    await this.sessionService.deleteUserSessions(userId);
+    await this.prisma.user.delete({ where: { id: userId } });
+
+    this.logger.log(`Deleted auth account for user ${userId}`);
+    return { message: 'Account deleted successfully' };
+  }
+
+  private async forwardDelete(url: string, authorization: string, serviceName: string) {
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'DELETE',
+        headers: { Authorization: authorization },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to reach ${serviceName} during account deletion`, error);
+      throw new BadGatewayException(`Failed to purge data via ${serviceName}`);
+    }
+
+    if (!response.ok) {
+      this.logger.error(`${serviceName} purge failed with status ${response.status}`);
+      throw new BadGatewayException(`Failed to purge data via ${serviceName}`);
+    }
   }
 }
