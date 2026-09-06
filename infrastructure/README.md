@@ -44,6 +44,30 @@ This directory contains infrastructure configuration for the UPXL API platform.
    curl https://upxl.sandbox.be.tibebai.com/health
    ```
 
+## Staging deploy (SSH keys)
+
+GitHub Actions deploys use **SSH private key** authentication (not password/`sshpass`).
+
+### One-time VPS setup
+
+1. Create a deploy key pair (on a secure machine):
+   ```bash
+   ssh-keygen -t ed25519 -f upwin-deploy -C "github-actions-deploy" -N ""
+   ```
+2. Append the public key to the VPS deploy user's `~/.ssh/authorized_keys`.
+3. Capture host keys for GitHub:
+   ```bash
+   ssh-keyscan -H YOUR_VPS_HOST
+   ```
+4. Add GitHub repository secrets:
+   - `VPS_SSH_PRIVATE_KEY` — contents of the private key file
+   - `VPS_SSH_KNOWN_HOSTS` — output of `ssh-keyscan`
+   - `VPS_HOST`, `VPS_USERNAME` — SSH target
+5. Remove obsolete `VPS_PASSWORD` after key deploy is verified.
+6. Prefer a non-root deploy user with permission to run Docker redeploys only.
+
+Workflows: `.github/workflows/deploy-*-service.yml` and `deploy-ai-gateway.yml`.
+
 ## Architecture
 
 ```
