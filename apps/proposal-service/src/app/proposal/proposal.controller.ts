@@ -80,6 +80,16 @@ export class ProposalController {
     return this.proposalService.listProposals(req.user.userId, query);
   }
 
+  /** Purge all proposals for the JWT user; optional profileId scopes the delete. */
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  async deleteMine(
+    @Request() req: AuthenticatedRequest,
+    @Query('profileId') profileId?: string
+  ) {
+    return this.proposalService.deleteAllForUser(req.user.userId, profileId);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteProposal(
