@@ -9,6 +9,7 @@ export class ConfigService {
       DATABASE_URL: process.env.PROFILE_DATABASE_URL || '',
       JWT_SECRET: process.env.JWT_SECRET || '',
       PORT: process.env.PROFILE_SERVICE_PORT || '3009',
+      PROPOSAL_SERVICE_URL: process.env.PROPOSAL_SERVICE_URL || 'http://localhost:3010/api',
     };
   }
 
@@ -22,5 +23,9 @@ export class ConfigService {
 
   getJwtSecret(): string {
     return this.get('JWT_SECRET');
+  }
+
+  getProposalServiceUrl(): string {
+    return this.get('PROPOSAL_SERVICE_URL');
   }
 }
