@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Response } from 'express';
 import { ProfileClient } from '../http/profile.client';
+import { assertProfileOwnedByUser } from '../http/assert-profile-ownership';
 import { PromptBuilder } from '../prompt.builder';
 import { GeminiConfig } from '../config/gemini.config';
 import { RagService } from '../rag/rag.service';
@@ -27,6 +28,7 @@ export class AiStreamingService {
       // Step 1: Fetch profile data
       this.logger.log(`Starting streaming proposal for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
+      assertProfileOwnedByUser(profile, userId);
 
       // Apply overrides if provided
       const enhancedProfile = this.applyOverrides(profile, tone, style);
