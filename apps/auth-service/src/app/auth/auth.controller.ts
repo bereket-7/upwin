@@ -127,6 +127,17 @@ export class AuthController {
     return this.authService.logoutAll(user.userId);
   }
 
+  @Delete('account')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteAccount(
+    @CurrentUser() user: AuthTypes.AuthenticatedUser,
+    @Request() req: { headers: { authorization?: string } }
+  ): Promise<{ message: string }> {
+    const authorization = req.headers.authorization || '';
+    return this.authService.deleteAccount(user.userId, authorization);
+  }
+
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {}
