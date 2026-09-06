@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { AIHookService } from './ai-hook.service';
 import { CreateAIHookDto } from './dto/create-ai-hook.dto';
@@ -35,8 +36,7 @@ export class ProfileAIHookController {
     @CurrentUser('userId') userId: string
   ) {
     this.logger.log(`GET /profile/ai-hooks/${preferenceId} - User: ${userId}`);
-    
-    // Get profile for user
+
     const profile = await this.prisma.profile.findUnique({
       where: { userId },
     });
@@ -51,15 +51,8 @@ export class ProfileAIHookController {
     @Body() dto: CreateAIHookDto
   ) {
     this.logger.log(`POST /profile/ai-hooks - User: ${userId}`);
-    
-    // Get profile for user
-    const profile = await this.prisma.profile.findUnique({
-      where: { userId },
-    });
 
-    if (!profile) {
-      throw new Error('Profile not found'); // Should be handled by Nest interceptors or auto-created
-    }
+    const profile = await this.requireProfile(userId);
 
     return this.aiHookService.create({
       ...dto,
@@ -74,11 +67,21 @@ export class ProfileAIHookController {
     @CurrentUser('userId') userId: string
   ) {
     this.logger.log(`DELETE /profile/ai-hooks/${id} - User: ${userId}`);
-    
+
+    const profile = await this.requireProfile(userId);
+
+    return this.aiHookService.remove(id, profile.id);
+  }
+
+  private async requireProfile(userId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { userId },
     });
 
-    return this.aiHookService.remove(id, profile?.id);
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    return profile;
   }
 }
