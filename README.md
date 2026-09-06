@@ -57,6 +57,46 @@ Service-specific e2e commands are available as `npm run e2e:auth`, `npm run e2e:
 - Profile lookup by ID is allowed only through guarded routes that verify `profile.userId` matches the current user.
 - AI gateway forwards the bearer token to profile and proposal services and uses JWT claims as the source of user identity.
 
+### Account deletion cascade
+
+`DELETE /api/auth/account` (JWT required) forwards the bearer token to:
+
+1. `DELETE /api/me` on profile-service (cascade-deletes profile children; also purges proposals for that profile)
+2. `DELETE /api/proposals/me` on proposal-service (all remaining proposals for the user)
+3. Deletes auth sessions and the auth user row
+
+If a downstream purge fails, auth returns `502` and does **not** delete the auth user.
+
+## Frontend integration
+
+The frontend lives in a **separate repository**. This monorepo is API-only.
+
+- **Staging API base:** `https://upxl.sandbox.be.tibebai.com` with path prefixes `/auth`, `/profile`, `/ai`, and `/proposal` (see [infrastructure/README.md](infrastructure/README.md)).
+- **CORS:** Credentialed browser requests require the frontend origin in `ALLOWED_ORIGINS` (comma-separated). Do **not** use `*`.
+- **`FRONTEND_URL`:** Auth-service base for OAuth redirects and email verification links. Set it to the real frontend origin per environment.
+- **Local default:** Frontend at `http://localhost:3000`.
+
+Shared TypeScript helpers live in `libs/shared` (`@org/shared`). Do not add a parallel `packages/` tree without an explicit package need.
+
 ## Deployment Notes
 
-Staging workflows build and push Docker images per service. Production-like deployments must provide explicit `ALLOWED_ORIGINS`; wildcard origins are not valid for credentialed CORS. Admin seed passwords must be supplied through `ADMIN_SEED_PASSWORD` and are never printed.
+Staging workflows build and push Docker images per service using SSH key authentication (`VPS_SSH_PRIVATE_KEY` + `VPS_SSH_KNOWN_HOSTS`). Production-like deployments must provide explicit `ALLOWED_ORIGINS`; wildcard origins are not valid for credentialed CORS. Admin seed passwords must be supplied through `ADMIN_SEED_PASSWORD` and are never printed.
+
+### Required GitHub Actions secrets (staging)
+
+| Secret | Used by |
+|--------|---------|
+| `DOCKER_USERNAME`, `DOCKER_PASSWORD` | All deploy workflows |
+| `VPS_HOST`, `VPS_USERNAME`, `VPS_SSH_PRIVATE_KEY`, `VPS_SSH_KNOWN_HOSTS` | All deploy workflows |
+| `JWT_SECRET`, `ALLOWED_ORIGINS` | All services |
+| `FRONTEND_URL`, `ADMIN_SEED_PASSWORD`, `DATABASE_URL`, OAuth/SMTP secrets | Auth |
+| `PROFILE_DATABASE_URL` | Profile |
+| `PROPOSAL_DATABASE_URL`, service URLs | Proposal |
+| `GEMINI_API_KEY`, `QDRANT_URL`, `QDRANT_API_KEY`, service URLs | AI gateway |
+| `PROFILE_SERVICE_URL`, `PROPOSAL_SERVICE_URL` | Auth (account deletion cascade) |
+
+### Token revocation note
+
+Logout blacklists tokens only inside auth-service (in-memory). Profile, proposal, and AI gateway accept a JWT until it expires. Prefer a short `JWT_EXPIRY` with refresh rotation. A shared Redis blacklist is a future hardening step.
+
+Deleted profiles can leave historical proposals with a stale `profileId`; account and profile delete flows purge or scope those rows by authenticated `userId` (see account deletion endpoints).
