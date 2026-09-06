@@ -1,5 +1,6 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { ProfileClient } from './http/profile.client';
+import { assertProfileOwnedByUser } from './http/assert-profile-ownership';
 import { PromptBuilder } from './prompt.builder';
 import { GeminiConfig } from './config/gemini.config';
 import { RagService } from './rag/rag.service';
@@ -25,6 +26,7 @@ export class AiService {
       // Step 1: Fetch profile data from profile-service
       this.logger.log(`Starting proposal generation for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
+      assertProfileOwnedByUser(profile, userId);
 
       // Step 2: Retrieve RAG context (Phase 2)
       this.logger.log('Retrieving RAG context from Qdrant');
