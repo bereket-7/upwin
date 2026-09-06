@@ -201,6 +201,19 @@ export class ProposalService {
     return { message: 'Proposal deleted successfully' };
   }
 
+  /**
+   * Delete all proposals for the authenticated user (optionally filtered by profileId).
+   * Versions cascade via Prisma onDelete.
+   */
+  async deleteAllForUser(userId: string, profileId?: string) {
+    const where = profileId ? { userId, profileId } : { userId };
+    const result = await this.prisma.proposal.deleteMany({ where });
+    this.logger.log(
+      `Deleted ${result.count} proposal(s) for user ${userId}${profileId ? ` profile ${profileId}` : ''}`
+    );
+    return { message: 'Proposals deleted successfully', deleted: result.count };
+  }
+
   private async assertProfileBelongsToUser(profileId: string, authorization?: string) {
     if (!authorization) {
       throw new UnauthorizedException('Authorization header is required');
