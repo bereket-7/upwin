@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger, UnauthorizedException, NotFoundException, BadGatewayException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Profile } from '../interfaces/profile.interface';
 
@@ -11,46 +11,43 @@ export class ProfileClient {
     this.profileServiceUrl = this.configService.get<string>('PROFILE_SERVICE_URL') || 'http://localhost:3009/api';
   }
 
-  async getProfile(profileId: string, authorization?: string): Promise<Profile> {
+  async getProfile(profileId: string, authorization: string): Promise<Profile> {
+    if (!authorization) {
+      throw new UnauthorizedException('Authorization header is required');
+    }
+
     try {
       this.logger.log(`Fetching profile: ${profileId} from ${this.profileServiceUrl}`);
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      // Add authorization header if provided
-      if (authorization) {
-        headers['Authorization'] = authorization;
-      }
 
       const response = await fetch(`${this.profileServiceUrl}/profile/${profileId}`, {
         method: 'GET',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authorization,
+        },
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new HttpException(
-            `Profile with ID ${profileId} not found`,
-            HttpStatus.NOT_FOUND
-          );
+        if (response.status === 401) {
+          throw new UnauthorizedException('Invalid authorization token');
         }
-        throw new HttpException(
-          `Failed to fetch profile: ${response.statusText}`,
-          HttpStatus.BAD_GATEWAY
+        if (response.status === 403 || response.status === 404) {
+          throw new NotFoundException(`Profile with ID ${profileId} not found`);
+        }
+        throw new BadGatewayException(
+          `Failed to fetch profile: ${response.statusText}`
         );
       }
 
       const profile = await response.json();
       this.logger.log(`Successfully fetched profile: ${profileId}`);
-      
+
       return this.transformToProfile(profile);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       this.logger.error(`Error fetching profile ${profileId}:`, error);
       throw new HttpException(
         'Failed to communicate with profile service',
@@ -62,6 +59,7 @@ export class ProfileClient {
   private transformToProfile(profile: any): Profile {
     return {
       id: profile.id,
+      userId: profile.userId,
       name: profile.name || 'Unknown',
       title: profile.title || '',
       bio: profile.bio || '',
