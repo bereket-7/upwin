@@ -9,6 +9,9 @@ import {
   UseGuards,
   Query,
   Put,
+  Headers,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '@org/shared';
@@ -44,6 +47,16 @@ export class ProfileController {
   @Throttle({ long: { limit: 100, ttl: 60000 } })
   getProfile(@CurrentUser('userId') userId: string) {
     return this.profileService.getOrCreateProfile(userId);
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ short: { limit: 5, ttl: 1000 } })
+  deleteProfile(
+    @CurrentUser('userId') userId: string,
+    @Headers('authorization') authorization: string
+  ) {
+    return this.profileService.deleteProfileForUser(userId, authorization);
   }
 
   @Get('profile/:id')
