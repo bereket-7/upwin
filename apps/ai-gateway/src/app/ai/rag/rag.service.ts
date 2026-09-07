@@ -4,6 +4,8 @@ import { EmbeddingService } from './embedding.service';
 import { RagContext, RagDocument } from './interfaces/rag.interface';
 import { Profile } from '../interfaces/profile.interface';
 
+const RAG_CONTENT_CHAR_CAP = 1200;
+
 @Injectable()
 export class RagService {
   private readonly logger = new Logger(RagService.name);
@@ -20,37 +22,40 @@ export class RagService {
     try {
       this.logger.log('Starting RAG retrieval');
 
-      // Prepare query text for embedding
       const profileContext = this.buildProfileContext(profile);
       const queryText = this.embeddingService.prepareQueryText(
         jobDescription,
         profileContext
       );
 
-      // Generate embedding for the query
       const queryVector = await this.embeddingService.generateEmbedding(queryText);
 
-      // Retrieve proposal examples and writing templates in parallel
       const [proposalExamples, writingTemplates] = await Promise.all([
         this.retrieveProposalExamples(queryVector, profile),
         this.retrieveWritingTemplates(queryVector, profile),
       ]);
 
+      const cappedExamples = proposalExamples.map((doc) => this.capDocument(doc));
+      const cappedTemplates = writingTemplates.map((doc) => this.capDocument(doc));
+
       const ragContext: RagContext = {
-        proposalExamples,
-        writingTemplates,
-        totalRetrieved: proposalExamples.length + writingTemplates.length,
+        proposalExamples: cappedExamples,
+        writingTemplates: cappedTemplates,
+        totalRetrieved: cappedExamples.length + cappedTemplates.length,
       };
 
+      const topScore = [...cappedExamples, ...cappedTemplates]
+        .map((d) => d.score ?? 0)
+        .sort((a, b) => b - a)[0];
+
       this.logger.log(
-        `RAG retrieval complete: ${proposalExamples.length} examples, ${writingTemplates.length} templates`
+        `RAG retrieval complete: hitCount=${ragContext.totalRetrieved}, topScore=${topScore ?? 'n/a'}, examples=${cappedExamples.length}, templates=${cappedTemplates.length}`
       );
 
       return ragContext;
     } catch (error) {
       this.logger.error('Error in RAG retrieval:', error);
-      
-      // Return empty context on error (graceful degradation)
+
       return {
         proposalExamples: [],
         writingTemplates: [],
@@ -59,24 +64,25 @@ export class RagService {
     }
   }
 
+  private resolveTone(profile: Profile): string {
+    const tonePreference = profile.preferences?.find((p) => p.category === 'TONE');
+    return tonePreference?.value || profile.tone || 'professional';
+  }
+
   private async retrieveProposalExamples(
     queryVector: number[],
     profile: Profile
   ): Promise<RagDocument[]> {
     try {
-      // Extract filters from profile
       const filters = {
-        tone: profile.tone,
-        // Add more filters based on job analysis if needed
+        tone: this.resolveTone(profile),
       };
 
-      const examples = await this.qdrantClient.searchProposalExamples(
+      return await this.qdrantClient.searchProposalExamples(
         queryVector,
-        3, // Top 3 examples
+        3,
         filters
       );
-
-      return examples;
     } catch (error) {
       this.logger.error('Error retrieving proposal examples:', error);
       return [];
@@ -89,20 +95,28 @@ export class RagService {
   ): Promise<RagDocument[]> {
     try {
       const filters = {
-        tone: profile.tone,
+        tone: this.resolveTone(profile),
       };
 
-      const templates = await this.qdrantClient.searchWritingTemplates(
+      return await this.qdrantClient.searchWritingTemplates(
         queryVector,
-        2, // Top 2 templates
+        2,
         filters
       );
-
-      return templates;
     } catch (error) {
       this.logger.error('Error retrieving writing templates:', error);
       return [];
     }
+  }
+
+  private capDocument(doc: RagDocument): RagDocument {
+    if (!doc.content || doc.content.length <= RAG_CONTENT_CHAR_CAP) {
+      return doc;
+    }
+    return {
+      ...doc,
+      content: `${doc.content.slice(0, RAG_CONTENT_CHAR_CAP)}…`,
+    };
   }
 
   private buildProfileContext(profile: Profile): string {
@@ -133,7 +147,6 @@ export class RagService {
 
     const sections: string[] = [];
 
-    // Format proposal examples
     if (ragContext.proposalExamples.length > 0) {
       sections.push('REFERENCE EXAMPLES (for inspiration only):');
       ragContext.proposalExamples.forEach((example, index) => {
@@ -142,10 +155,9 @@ export class RagService {
       });
     }
 
-    // Format writing templates
     if (ragContext.writingTemplates.length > 0) {
       sections.push('\n\nWRITING TEMPLATES (structural guidance):');
-      ragContext.writingTemplates.forEach((template, index) => {
+      ragContext.writingTemplates.forEach((template) => {
         const section = template.metadata.section || 'general';
         sections.push(`\n${section.toUpperCase()} Template:`);
         sections.push(template.content);
