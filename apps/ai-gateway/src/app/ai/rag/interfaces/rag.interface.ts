@@ -6,15 +6,15 @@ export interface RagDocument {
 }
 
 export interface ProposalExampleMetadata {
-  jobType: string;
-  industry: string;
-  seniority: string;
   tone: string;
+  industry?: string;
+  jobType?: string;
+  seniority?: string;
 }
 
 export interface WritingTemplateMetadata {
-  section: 'intro' | 'body' | 'closing' | 'objection';
   tone: string;
+  section?: 'intro' | 'body' | 'closing' | 'objection' | 'general';
 }
 
 export interface SearchResult {
