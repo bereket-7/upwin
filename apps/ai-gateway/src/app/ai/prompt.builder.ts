@@ -264,25 +264,41 @@ Write the proposal now:`;
     return 'not_relevant';
   }
 
+  buildReviewSystemRules(): string {
+    return `You are reviewing a freelance job match. Be honest and specific.
+CRITICAL RULES:
+- Never invent skills or experience not present in the profile
+- Prefer concrete evidence from the profile over generic praise
+- Call out mismatches clearly
+- Return structured JSON as requested by the user prompt`;
+  }
+
   private formatRagContextForPrompt(ragContext: RagContext): string {
     const sections: string[] = ['CONTEXT (REFERENCE MATERIAL - FOR INSPIRATION ONLY):'];
+    const charCap = 1200;
 
-    // Add proposal examples
     if (ragContext.proposalExamples.length > 0) {
       sections.push('\nSuccessful Proposal Examples:');
       ragContext.proposalExamples.forEach((example, index) => {
+        const content =
+          example.content.length > charCap
+            ? `${example.content.slice(0, charCap)}…`
+            : example.content;
         sections.push(`\nExample ${index + 1} (Score: ${example.score?.toFixed(2) || 'N/A'}):`);
-        sections.push(example.content);
+        sections.push(content);
       });
     }
 
-    // Add writing templates
     if (ragContext.writingTemplates.length > 0) {
       sections.push('\n\nWriting Structure Templates:');
       ragContext.writingTemplates.forEach((template) => {
         const section = template.metadata.section || 'general';
+        const content =
+          template.content.length > charCap
+            ? `${template.content.slice(0, charCap)}…`
+            : template.content;
         sections.push(`\n${section.toUpperCase()}:`);
-        sections.push(template.content);
+        sections.push(content);
       });
     }
 
