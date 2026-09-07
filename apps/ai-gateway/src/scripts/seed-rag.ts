@@ -24,11 +24,14 @@ interface ProposalExample {
   title: string;
   content: string;
   industry: string;
+  tone: string;
 }
 
 interface WritingTemplate {
   title: string;
   content: string;
+  tone: string;
+  section: string;
 }
 
 interface SeedPoint {
@@ -38,7 +41,11 @@ interface SeedPoint {
     type: 'proposal_example' | 'writing_template';
     title: string;
     content: string;
-    industry?: string;
+    metadata: {
+      tone: string;
+      industry?: string;
+      section?: string;
+    };
   };
 }
 
@@ -66,41 +73,49 @@ const PROPOSAL_EXAMPLES: ProposalExample[] = [
     title: 'Full Stack Web Application Development',
     content: 'Hello, I specialize in building scalable full-stack web applications using React, Node.js, and PostgreSQL. I can develop your platform with secure authentication, responsive UI, and optimized backend APIs. My approach includes agile delivery, weekly updates, and clean architecture for long-term maintainability.',
     industry: 'software',
+    tone: 'professional',
   },
   {
     title: 'SaaS MVP Development',
     content: 'I will help you launch your SaaS MVP quickly and efficiently. Using modern cloud-native architecture, I will build a scalable backend, intuitive frontend, and secure payment integration. My focus is speed, reliability, and product-market validation.',
     industry: 'startup',
+    tone: 'professional',
   },
   {
     title: 'AI Feature Integration',
     content: 'I can integrate AI-powered features such as recommendation engines, chatbots, and document summarization into your existing system. Using modern LLM APIs and vector databases, I ensure intelligent automation and measurable efficiency improvements.',
     industry: 'ai',
+    tone: 'professional',
   },
   {
     title: 'Cross-Platform Mobile App',
     content: 'I will develop a high-performance mobile application using React Native or Flutter. The app will support iOS and Android with a single codebase, ensuring smooth UX and strong backend integration.',
     industry: 'mobile',
+    tone: 'professional',
   },
   {
     title: 'E-commerce Platform Development',
     content: 'I can build a secure and scalable e-commerce platform with product management, payment integration, order tracking, and analytics dashboard. The solution will be optimized for performance and SEO.',
     industry: 'ecommerce',
+    tone: 'professional',
   },
   {
     title: 'REST API Development',
     content: 'I specialize in designing clean, well-documented REST APIs using NestJS and PostgreSQL. The API will follow best practices including JWT authentication, validation, and scalable architecture.',
     industry: 'backend',
+    tone: 'professional',
   },
   {
     title: 'DevOps & CI/CD Setup',
     content: 'I will set up CI/CD pipelines, Dockerized environments, and cloud deployment using AWS or GCP. The goal is automated, reliable, and secure deployments.',
     industry: 'devops',
+    tone: 'professional',
   },
   {
     title: 'UI/UX Design Enhancement',
     content: 'I will redesign your application interface focusing on usability, accessibility, and modern design standards. The outcome will be visually appealing and conversion-optimized.',
     industry: 'design',
+    tone: 'professional',
   },
 ];
 
@@ -108,18 +123,26 @@ const WRITING_TEMPLATES: WritingTemplate[] = [
   {
     title: 'Professional Proposal Tone',
     content: 'Structure the proposal formally. Start with understanding the client\'s problem. Provide a clear solution. Highlight experience. End with a confident call-to-action.',
+    tone: 'professional',
+    section: 'general',
   },
   {
     title: 'Concise Proposal Style',
     content: 'Keep the proposal short and direct. Focus on value delivery and measurable results. Avoid unnecessary details.',
+    tone: 'professional',
+    section: 'body',
   },
   {
     title: 'Technical Deep Dive Style',
     content: 'Provide technical details about architecture, tools, scalability, and performance. Mention frameworks and justify design decisions.',
+    tone: 'professional',
+    section: 'body',
   },
   {
     title: 'Startup-Focused Proposal Style',
     content: 'Emphasize speed, MVP validation, iteration cycles, and long-term scalability. Show enthusiasm and product thinking.',
+    tone: 'professional',
+    section: 'intro',
   },
 ];
 
@@ -180,7 +203,10 @@ async function seedProposalExamples(): Promise<void> {
           type: 'proposal_example',
           title: example.title,
           content: example.content,
-          industry: example.industry,
+          metadata: {
+            tone: example.tone,
+            industry: example.industry,
+          },
         },
       };
       
@@ -237,6 +263,10 @@ async function seedWritingTemplates(): Promise<void> {
           type: 'writing_template',
           title: template.title,
           content: template.content,
+          metadata: {
+            tone: template.tone,
+            section: template.section,
+          },
         },
       };
       
