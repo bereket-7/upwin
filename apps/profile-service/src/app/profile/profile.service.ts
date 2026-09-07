@@ -427,20 +427,37 @@ export class ProfileService {
    * Sync all Upwork data - updates profile and replaces all Upwork portfolio items
    * Custom portfolio items are not affected
    */
+  /**
+   * Sync Upwork profile fields and UPWORK_IMPORT portfolios only.
+   * Does not delete or replace manually curated children (education, work, etc.).
+   */
   async syncAllUpworkData(userId: string, upworkData: ImportUpworkDto) {
-    const { portfolioItems, workHistory, education, employmentHistory, bio, languages, certificates, upworkId, skills, totalEarnings, totalJobs, totalHours, profileName, avatar, location, country, city, title, hourlyRate, experienceYrs } = upworkData;
+    const {
+      portfolioItems,
+      bio,
+      upworkId,
+      skills,
+      totalEarnings,
+      totalJobs,
+      totalHours,
+      profileName,
+      avatar,
+      location,
+      country,
+      city,
+      title,
+      hourlyRate,
+      experienceYrs,
+    } = upworkData;
 
-    // Get or create profile
     let profile = await this.prisma.profile.findUnique({
       where: { userId },
     });
 
     if (!profile) {
-      // If no profile exists, create it with the Upwork data
       return this.importFromUpwork(userId, upworkData);
     }
 
-    // Check if upworkId is already used by another profile
     if (upworkId) {
       const existingUpworkProfile = await this.prisma.profile.findUnique({
         where: { upworkId },
@@ -451,161 +468,50 @@ export class ProfileService {
       }
     }
 
-    // Update profile with latest Upwork data
-    profile = await this.prisma.profile.update({
-      where: { userId },
-      data: {
-        bio: bio?.trim(),
-        name: profileName,
-        avatar,
-        location,
-        country,
-        city,
-        title,
-        hourlyRate,
-        experienceYrs,
-        upworkId,
-        skills: skills || [],
-        totalEarnings,
-        totalJobs,
-        totalHours,
-        syncedAt: new Date(),
-      },
-    });
+    const profileId = profile.id;
 
-    // Delete all existing Upwork-imported items
-    await this.prisma.portfolioItem.deleteMany({
-      where: {
-        profileId: profile.id,
-        type: PortfolioType.UPWORK_IMPORT,
-      },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.profile.update({
+        where: { userId },
+        data: {
+          bio: bio?.trim(),
+          name: profileName,
+          avatar,
+          location,
+          country,
+          city,
+          title,
+          hourlyRate,
+          experienceYrs,
+          upworkId,
+          skills: skills || [],
+          totalEarnings,
+          totalJobs,
+          totalHours,
+          syncedAt: new Date(),
+        },
+      });
 
-    await this.prisma.workHistoryItem.deleteMany({
-      where: {
-        profileId: profile.id,
-      },
-    });
-
-    await this.prisma.educationItem.deleteMany({
-      where: {
-        profileId: profile.id,
-      },
-    });
-
-    await this.prisma.employmentHistoryItem.deleteMany({
-      where: {
-        profileId: profile.id,
-      },
-    });
-
-    await this.prisma.languageItem.deleteMany({
-      where: {
-        profileId: profile.id,
-      },
-    });
-
-    await this.prisma.certificateItem.deleteMany({
-      where: {
-        profileId: profile.id,
-      },
-    });
-
-    // Add new portfolio items
-    if (portfolioItems && portfolioItems.length > 0) {
-      await this.prisma.portfolioItem.createMany({
-        data: portfolioItems.map(item => ({
-          ...item,
-          profileId: profile.id,
+      await tx.portfolioItem.deleteMany({
+        where: {
+          profileId,
           type: PortfolioType.UPWORK_IMPORT,
-        })),
+        },
       });
-    }
 
-    // Add new work history items
-    if (workHistory && workHistory.length > 0) {
-      await this.prisma.workHistoryItem.createMany({
-        data: workHistory.map(item => ({
-          ...item,
-          profileId: profile.id,
-        })),
-      });
-    }
+      if (portfolioItems && portfolioItems.length > 0) {
+        await tx.portfolioItem.createMany({
+          data: portfolioItems.map((item) => ({
+            ...item,
+            profileId,
+            type: PortfolioType.UPWORK_IMPORT,
+          })),
+        });
+      }
+    });
 
-    // Add new education items
-    if (education && education.length > 0) {
-      // Normalize and deduplicate education entries
-      const normalizedEducation = education.map(item => ({
-        school: item.school.trim(),
-        degree: item.degree.trim(),
-        dates: item.dates?.trim(),
-        fieldOfStudy: item.fieldOfStudy?.trim(),
-        description: item.description?.trim(),
-        profileId: profile.id,
-      }));
-
-      // Remove duplicates based on school, degree, and dates
-      const uniqueEducation = normalizedEducation.filter((item, index, self) =>
-        index === self.findIndex((t) => (
-          t.school === item.school &&
-          t.degree === item.degree &&
-          t.dates === item.dates
-        ))
-      );
-
-      await this.prisma.educationItem.createMany({
-        data: uniqueEducation,
-      });
-    }
-
-    // Add new employment history items
-    if (employmentHistory && employmentHistory.length > 0) {
-      await this.prisma.employmentHistoryItem.createMany({
-        data: employmentHistory.map(item => ({
-          ...item,
-          title: item.title.trim(),
-          company: item.company.trim(),
-          location: item.location?.trim(),
-          description: item.description?.trim(),
-          startDate: item.startDate?.trim(),
-          endDate: item.endDate?.trim(),
-          profileId: profile.id,
-        })),
-      });
-    }
-
-    // Add new language items
-    if (languages && languages.length > 0) {
-      await this.prisma.languageItem.createMany({
-        data: languages.map(item => ({
-          ...item,
-          language: item.language.trim(),
-          level: item.level.trim(),
-          profileId: profile.id,
-        })),
-      });
-    }
-
-    // Add new certificate items
-    if (certificates && certificates.length > 0) {
-      await this.prisma.certificateItem.createMany({
-        data: certificates.map(item => ({
-          ...item,
-          name: item.name.trim(),
-          issuer: item.issuer?.trim(),
-          issueDate: item.issueDate?.trim(),
-          expiryDate: item.expiryDate?.trim(),
-          credentialId: item.credentialId?.trim(),
-          url: item.url?.trim(),
-          description: item.description?.trim(),
-          profileId: profile.id,
-        })),
-      });
-    }
-
-    // Return updated profile with all relations
     return this.prisma.profile.findUnique({
-      where: { id: profile.id },
+      where: { id: profileId },
       include: {
         preferences: {
           include: {
@@ -636,6 +542,11 @@ export class ProfileService {
         },
       },
     });
+  }
+
+  /** Alias used by portfolio/:id/sync — same safe sync path. */
+  async syncUpworkPortfoliosAndProfile(userId: string, upworkData: ImportUpworkDto) {
+    return this.syncAllUpworkData(userId, upworkData);
   }
 
   // ==================== PORTFOLIO ITEM OPERATIONS ====================
@@ -724,7 +635,7 @@ export class ProfileService {
   }
 
   /**
-   * Sync Upwork portfolio items with latest data
+   * Sync Upwork portfolio items with latest data (profile fields + UPWORK_IMPORT portfolios only).
    */
   async syncUpworkPortfolio(userId: string, portfolioItemId: string, upworkData: ImportUpworkDto) {
     const portfolioItem = await this.getPortfolio(userId, portfolioItemId);
@@ -733,8 +644,7 @@ export class ProfileService {
       throw new BadRequestException('This endpoint can only sync Upwork-imported portfolio items');
     }
 
-    // For individual item sync, just use syncAllUpworkData
-    return this.syncAllUpworkData(userId, upworkData);
+    return this.syncUpworkPortfoliosAndProfile(userId, upworkData);
   }
 
   async deletePortfolio(userId: string, portfolioItemId: string) {
