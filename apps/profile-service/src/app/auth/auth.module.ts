@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SharedAuthModule, SharedConfigModule } from '@org/shared';
 
 @Module({
-  providers: [JwtAuthGuard, Reflector],
-  exports: [JwtAuthGuard],
+  imports: [SharedConfigModule, SharedAuthModule],
+  exports: [SharedAuthModule],
 })
 export class AuthModule {}
