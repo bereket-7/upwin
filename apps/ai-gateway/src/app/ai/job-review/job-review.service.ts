@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ProfileClient } from '../http/profile.client';
 import { assertProfileOwnedByUser } from '../http/assert-profile-ownership';
 import { GeminiConfig } from '../config/gemini.config';
+import { PromptBuilder } from '../prompt.builder';
 import { ReviewJobDto, JobReviewResponseDto } from '../dto/review-job.dto';
 import { Profile } from '../interfaces/profile.interface';
 
@@ -12,30 +13,28 @@ export class JobReviewService {
   constructor(
     private readonly profileClient: ProfileClient,
     private readonly geminiConfig: GeminiConfig,
+    private readonly promptBuilder: PromptBuilder,
   ) {}
 
   async reviewJob(userId: string, dto: ReviewJobDto, authorization: string): Promise<JobReviewResponseDto> {
     const { profileId, jobDescription, jobTitle, jobBudget, clientInfo } = dto;
 
     try {
-      // Step 1: Fetch profile
       this.logger.log(`Reviewing job for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
       assertProfileOwnedByUser(profile, userId);
 
-      // Step 2: Analyze match scores
       const breakdown = this.analyzeMatch(profile, jobDescription, jobBudget);
 
-      // Step 3: Detect red flags
       const redFlags = this.detectRedFlags(jobDescription, jobTitle, jobBudget, clientInfo);
 
-      // Step 4: Build AI prompt for insights
-      const prompt = this.buildReviewPrompt(profile, jobDescription, jobTitle, jobBudget, breakdown, redFlags);
+      const prompt = `${this.promptBuilder.buildReviewSystemRules()}\n\n${this.buildReviewPrompt(profile, jobDescription, jobTitle, jobBudget, breakdown, redFlags)}`;
 
-      // Step 5: Get AI analysis
       this.logger.log('Calling Gemini for job review analysis');
       const model = this.geminiConfig.getModel();
-      const result = await model.generateContent(prompt);
+      const result = await model.generateContent(prompt, {
+        signal: AbortSignal.timeout(30000),
+      } as any);
       const aiResponse = result.response.text();
 
       // Step 6: Parse AI response
