@@ -20,7 +20,7 @@ export class SharedConfigService {
   }
 
   get jwtExpiresIn(): string {
-    return this.get('JWT_EXPIRES_IN') || '7d';
+    return this.get('JWT_EXPIRY') || this.get('JWT_EXPIRES_IN') || '15m';
   }
 
   // Database Configuration
@@ -45,12 +45,12 @@ export class SharedConfigService {
     return this.nodeEnv === 'production';
   }
 
-  // CORS Configuration
-  get allowedOrigins(): string[] | string {
+  // CORS Configuration — never use '*' with credentials
+  get allowedOrigins(): string[] {
     const origins = this.get('ALLOWED_ORIGINS');
-    if (origins === '*') {
-      return '*'; // Allow all origins
+    if (!origins || origins.trim() === '*') {
+      return ['http://localhost:3000'];
     }
-    return origins ? origins.split(',') : ['http://localhost:3000'];
+    return origins.split(',').map((o) => o.trim()).filter(Boolean);
   }
 }
