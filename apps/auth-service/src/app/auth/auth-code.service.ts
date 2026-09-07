@@ -1,48 +1,48 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-
-interface AuthCode {
-  code: string;
-  userId: string;
-  expiresAt: Date;
-}
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AuthCodeService {
-  private authCodes = new Map<string, AuthCode>();
+  private readonly logger = new Logger(AuthCodeService.name);
 
-  generateAuthCode(userId: string): string {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async generateAuthCode(userId: string): Promise<string> {
     const code = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    this.authCodes.set(code, {
-      code,
-      userId,
-      expiresAt,
+    await this.prisma.authCode.create({
+      data: { code, userId, expiresAt },
     });
 
-    this.cleanupExpiredCodes();
+    await this.cleanupExpiredCodes();
     return code;
   }
 
-  exchangeCodeForToken(code: string): string | null {
-    const authCode = this.authCodes.get(code);
-    
-    if (!authCode || authCode.expiresAt < new Date()) {
-      this.authCodes.delete(code);
+  async exchangeCodeForToken(code: string): Promise<string | null> {
+    const authCode = await this.prisma.authCode.findUnique({ where: { code } });
+
+    if (!authCode) {
       return null;
     }
 
-    this.authCodes.delete(code);
+    await this.prisma.authCode.delete({ where: { code } }).catch(() => undefined);
+
+    if (authCode.expiresAt.getTime() < Date.now()) {
+      return null;
+    }
+
     return authCode.userId;
   }
 
-  private cleanupExpiredCodes(): void {
-    const now = new Date();
-    for (const [code, authCode] of this.authCodes.entries()) {
-      if (authCode.expiresAt < now) {
-        this.authCodes.delete(code);
-      }
+  async cleanupExpiredCodes(): Promise<number> {
+    const result = await this.prisma.authCode.deleteMany({
+      where: { expiresAt: { lte: new Date() } },
+    });
+    if (result.count > 0) {
+      this.logger.debug(`Cleaned ${result.count} expired auth codes`);
     }
+    return result.count;
   }
 }
