@@ -21,19 +21,22 @@ export class AiStreamingService {
     private readonly proposalClient: ProposalClientService,
   ) {}
 
-  async streamProposal(userId: string, dto: StreamProposalDto, authorization: string, response: Response): Promise<void> {
+  async streamProposal(
+    userId: string,
+    dto: StreamProposalDto,
+    authorization: string,
+    response: Response,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
     const { profileId, jobDescription, tone, style, jobId, jobUrl, jobTitle } = dto;
 
     try {
-      // Step 1: Fetch profile data
       this.logger.log(`Starting streaming proposal for user ${userId}, profile: ${profileId}`);
       const profile = await this.profileClient.getProfile(profileId, authorization);
       assertProfileOwnedByUser(profile, userId);
 
-      // Apply overrides if provided
       const enhancedProfile = this.applyOverrides(profile, tone, style);
 
-      // Step 2: Retrieve RAG context
       this.logger.log('Retrieving RAG context');
       const ragContext = await this.ragService.retrieveContext(jobDescription, enhancedProfile);
 
@@ -43,7 +46,6 @@ export class AiStreamingService {
         );
       }
 
-      // Step 3: Build prompt with metadata
       this.logger.log('Building streaming prompt');
       const { system, user, metadata } = this.promptBuilder.buildPrompt(
         enhancedProfile,
@@ -53,14 +55,18 @@ export class AiStreamingService {
 
       const fullPrompt = `${system}\n\n${user}`;
 
-      // Send metadata event first
       this.sendMetadata(response, metadata);
 
-      // Step 4: Stream from Gemini and accumulate content
       this.logger.log('Starting Gemini streaming');
-      const fullContent = await this.streamFromGemini(fullPrompt, response);
+      const fullContent = await this.streamFromGemini(fullPrompt, response, abortSignal);
 
-      // Step 5: Save to proposal-service after streaming completes
+      if (abortSignal?.aborted) {
+        if (!response.writableEnded) {
+          response.end();
+        }
+        return;
+      }
+
       this.logger.log('Streaming completed, saving proposal');
       await this.saveStreamedProposal(
         profileId,
@@ -87,28 +93,36 @@ export class AiStreamingService {
     }
   }
 
-  private async streamFromGemini(prompt: string, response: Response): Promise<string> {
+  private async streamFromGemini(
+    prompt: string,
+    response: Response,
+    abortSignal?: AbortSignal,
+  ): Promise<string> {
     try {
       const model = this.geminiConfig.getModel();
       let fullContent = '';
 
-      // Generate content with streaming
-      const result = await model.generateContentStream(prompt);
+      const result = await model.generateContentStream(prompt, {
+        signal: abortSignal,
+      } as any);
 
-      // Stream chunks to client and accumulate
       for await (const chunk of result.stream) {
+        if (abortSignal?.aborted) {
+          this.logger.warn('Gemini stream aborted by client disconnect');
+          break;
+        }
         const chunkText = chunk.text();
-        
+
         if (chunkText) {
           fullContent += chunkText;
-          // Send SSE message
-          response.write(`data: ${chunkText}\n\n`);
+          response.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
         }
       }
 
-      // Send completion event
-      response.write(`event: done\n`);
-      response.write(`data: [DONE]\n\n`);
+      if (!abortSignal?.aborted) {
+        response.write(`event: done\n`);
+        response.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      }
 
       return fullContent;
     } catch (error) {
