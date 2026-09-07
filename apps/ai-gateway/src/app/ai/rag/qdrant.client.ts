@@ -19,21 +19,26 @@ export class QdrantClientService {
 
       this.logger.log(`Searching collection: ${collectionName}, topK: ${topK}`);
 
+      const scoreThreshold = 0.55;
       const searchResult = await client.search(collectionName, {
         vector: queryVector,
         limit: topK,
         with_payload: true,
         filter: filter,
+        score_threshold: scoreThreshold,
       });
 
       const documents: RagDocument[] = searchResult.map((result: any) => ({
         id: result.id.toString(),
         content: result.payload?.content as string || '',
-        metadata: result.payload?.metadata as Record<string, any> || {},
+        metadata: (result.payload?.metadata as Record<string, any>) || {},
         score: result.score,
       }));
 
-      this.logger.log(`Retrieved ${documents.length} documents from ${collectionName}`);
+      const topScore = documents[0]?.score;
+      this.logger.log(
+        `Retrieved ${documents.length} documents from ${collectionName} (hitCount=${documents.length}, topScore=${topScore ?? 'n/a'}, threshold=${scoreThreshold})`
+      );
 
       return documents;
     } catch (error) {
