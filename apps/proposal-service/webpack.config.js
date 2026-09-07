@@ -9,6 +9,11 @@ module.exports = {
       devtoolModuleFilenameTemplate: '[absolute-resource-path]',
     }),
   },
+  resolve: {
+    alias: {
+      '@org/shared': join(__dirname, '../../libs/shared/src/index.ts'),
+    },
+  },
   ignoreWarnings: [
     {
       module: /generated\/client/,
