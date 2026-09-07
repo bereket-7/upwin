@@ -320,40 +320,15 @@ export class QuestionAnswerService {
   }
 
   /**
-   * PHASE 2: Answer availability questions
+   * Answer availability only from profile data; never invent hours or start dates.
    */
   private answerAvailabilityQuestion(question: JobQuestionDto, profile: Profile): QuestionAnswerDto {
-    const questionLower = question.question.toLowerCase();
-
-    // Check for specific availability patterns
-    if (/when can you start/i.test(questionLower)) {
-      return {
-        questionId: question.id,
-        question: question.question,
-        answer: 'I\'m available to start immediately and can begin work as soon as we finalize the project details.',
-        confidence: 'medium',
-        source: 'default',
-        category: QuestionCategory.AVAILABILITY,
-      };
-    }
-
-    if (/hours per week|full.?time|part.?time/i.test(questionLower)) {
-      return {
-        questionId: question.id,
-        question: question.question,
-        answer: 'I can commit to full-time hours (40+ hours per week) and am flexible with scheduling to meet project deadlines.',
-        confidence: 'medium',
-        source: 'default',
-        category: QuestionCategory.AVAILABILITY,
-      };
-    }
-
-    // Generic availability answer
     return {
       questionId: question.id,
       question: question.question,
-      answer: 'I have flexible availability and can adjust my schedule to meet project requirements. I\'m committed to delivering quality work on time.',
-      confidence: 'medium',
+      answer:
+        'My profile does not include specific availability or weekly hour commitments. Please ask me directly so I can confirm based on this project.',
+      confidence: 'low',
       source: 'default',
       category: QuestionCategory.AVAILABILITY,
     };
@@ -428,40 +403,42 @@ export class QuestionAnswerService {
   }
 
   /**
-   * PHASE 2: Answer yes/no questions
+   * Yes/no answers must not invent skills or availability.
    */
   private answerYesNoQuestion(question: JobQuestionDto, profile: Profile): QuestionAnswerDto {
     const questionLower = question.question.toLowerCase();
 
-    // Positive responses for common yes/no questions
-    const positivePatterns = [
-      /are you available/i,
-      /can you (start|work|commit)/i,
-      /do you have experience/i,
-      /have you worked/i,
-      /are you familiar/i,
-      /can you provide/i,
-      /are you comfortable/i,
-    ];
-
-    const isPositive = positivePatterns.some(pattern => pattern.test(questionLower));
-
-    if (isPositive) {
+    if (/do you have experience|have you worked|are you familiar/i.test(questionLower)) {
+      const skills = profile.skills || [];
+      const matched = skills.filter((skill) =>
+        questionLower.includes(skill.toLowerCase())
+      );
+      if (matched.length > 0) {
+        return {
+          questionId: question.id,
+          question: question.question,
+          answer: `Yes — my profile includes relevant skills (${matched.slice(0, 5).join(', ')}).`,
+          confidence: 'high',
+          source: 'profile',
+          category: QuestionCategory.YES_NO,
+        };
+      }
       return {
         questionId: question.id,
         question: question.question,
-        answer: 'Yes, absolutely. I have the experience and availability to meet your requirements.',
-        confidence: 'medium',
+        answer:
+          'I do not want to overstate fit from incomplete profile data. Please review my listed skills and projects, or ask a more specific question.',
+        confidence: 'low',
         source: 'default',
         category: QuestionCategory.YES_NO,
       };
     }
 
-    // Default yes with context
     return {
       questionId: question.id,
       question: question.question,
-      answer: 'Yes, I can accommodate this requirement.',
+      answer:
+        'Insufficient profile data to answer confidently without inventing details. Happy to clarify once we discuss the requirement.',
       confidence: 'low',
       source: 'default',
       category: QuestionCategory.YES_NO,
