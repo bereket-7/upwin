@@ -21,6 +21,7 @@ import { ConfigService } from '../config/config.service';
 import { AuthCodeService } from './auth-code.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AccountDeletionWorker } from './account-deletion.worker';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
     TokenBlacklistService,
     JwtAuthGuard,
     Reflector,
+    AccountDeletionWorker,
   ],
   exports: [AuthService],
 })
