@@ -25,6 +25,7 @@ export class ProfileClient {
           'Content-Type': 'application/json',
           Authorization: authorization,
         },
+        signal: AbortSignal.timeout(5000),
       });
 
       if (!response.ok) {
