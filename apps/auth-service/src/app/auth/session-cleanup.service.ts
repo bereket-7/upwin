@@ -1,36 +1,43 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { SessionService } from './session.service';
+import { TokenBlacklistService } from './token-blacklist.service';
+import { AuthCodeService } from './auth-code.service';
 
 @Injectable()
-export class SessionCleanupService implements OnModuleInit {
+export class SessionCleanupService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SessionCleanupService.name);
   private cleanupInterval?: NodeJS.Timeout;
 
-  constructor(private readonly sessionService: SessionService) {}
+  constructor(
+    private readonly sessionService: SessionService,
+    private readonly tokenBlacklistService: TokenBlacklistService,
+    private readonly authCodeService: AuthCodeService,
+  ) {}
 
   onModuleInit() {
-    // Run cleanup every hour
     this.startCleanupSchedule();
   }
 
   private startCleanupSchedule() {
-    // Run immediately on startup
-    this.cleanupExpiredSessions();
+    void this.cleanupExpired();
 
-    // Then run every hour
     this.cleanupInterval = setInterval(() => {
-      this.cleanupExpiredSessions();
-    }, 60 * 60 * 1000); // 1 hour
+      void this.cleanupExpired();
+    }, 60 * 60 * 1000);
   }
 
-  private async cleanupExpiredSessions() {
+  private async cleanupExpired() {
     try {
-      const count = await this.sessionService.cleanupExpiredSessions();
-      if (count > 0) {
-        this.logger.log(`Session cleanup completed: ${count} sessions removed`);
+      const sessions = await this.sessionService.cleanupExpiredSessions();
+      const revoked = await this.tokenBlacklistService.cleanupExpired();
+      const codes = await this.authCodeService.cleanupExpiredCodes();
+      if (sessions > 0 || revoked > 0 || codes > 0) {
+        this.logger.log(
+          `Auth cleanup: sessions=${sessions}, revoked=${revoked}, authCodes=${codes}`
+        );
       }
     } catch (error) {
-      this.logger.error('Session cleanup failed:', error);
+      this.logger.error('Auth cleanup failed:', error);
     }
   }
 
