@@ -1,5 +1,6 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Logger, UseGuards, Headers, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { AiService } from './ai.service';
 import { GenerateProposalDto, ProposalResponseDto } from './dto/generate-proposal.dto';
 
@@ -18,6 +19,7 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post()
+  @Throttle({ short: { limit: 3, ttl: 1000 }, medium: { limit: 10, ttl: 10000 } })
   @HttpCode(HttpStatus.OK)
   async generateProposal(
     @Body() dto: GenerateProposalDto,
