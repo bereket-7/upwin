@@ -24,11 +24,13 @@ export class AiService {
 
     try {
       // Step 1: Fetch profile data from profile-service
-      this.logger.log(`Starting proposal generation for user ${userId}, profile: ${profileId}`);
+      this.logger.log(
+        `Starting proposal generation for user ${userId}, profile: ${profileId}`
+      );
+      const startedAt = Date.now();
       const profile = await this.profileClient.getProfile(profileId, authorization);
       assertProfileOwnedByUser(profile, userId);
 
-      // Step 2: Retrieve RAG context (Phase 2)
       this.logger.log('Retrieving RAG context from Qdrant');
       const ragContext = await this.ragService.retrieveContext(jobDescription, profile);
       
@@ -40,18 +42,17 @@ export class AiService {
         this.logger.warn('No RAG context retrieved, proceeding with profile data only');
       }
 
-      // Step 3: Build structured prompt with RAG context and get metadata
       this.logger.log('Building prompt with RAG context');
       const { system, user, metadata } = this.promptBuilder.buildPrompt(profile, jobDescription, ragContext);
 
-      // Step 4: Call Gemini 2.5 Flash API
       this.logger.log("Calling Gemini 2.5 Flash API");
       const model = this.geminiConfig.getModel();
 
-      // Combine system and user prompts for Gemini
       const fullPrompt = `${system}\n\n${user}`;
 
-      const result = await model.generateContent(fullPrompt);
+      const result = await model.generateContent(fullPrompt, {
+        signal: AbortSignal.timeout(30000),
+      } as any);
       const response = result.response;
       const proposal = response.text();
 
@@ -63,7 +64,7 @@ export class AiService {
       }
 
       this.logger.log(
-        `Successfully generated proposal (${proposal.length} characters) with RAG enhancement`
+        `Successfully generated proposal (${proposal.length} characters) with RAG enhancement in ${Date.now() - startedAt}ms (userId=${userId}, profileId=${profileId}, ragHitCount=${ragContext.totalRetrieved}, model=gemini-2.5-flash)`
       );
 
       // Step 5: Auto-save to proposal-service (non-blocking)
