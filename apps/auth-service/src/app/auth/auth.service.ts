@@ -83,7 +83,12 @@ export class AuthService {
       where: { email },
     });
 
-    if (user && user.password && await comparePassword(password, user.password)) {
+    if (
+      user &&
+      user.isActive &&
+      user.password &&
+      (await comparePassword(password, user.password))
+    ) {
       const { password, ...result } = user;
       return result as UserProfile;
     }
@@ -119,18 +124,15 @@ export class AuthService {
   }
 
   private async generateAuthTokens(user: UserProfile): Promise<LoginResponse> {
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    
-    // Generate access token
+    const jti = randomBytes(16).toString('hex');
+    const payload = { sub: user.id, email: user.email, role: user.role, jti };
+
     const accessToken = this.jwtService.sign(payload);
-    
-    // Generate refresh token
+
     const refreshToken = this.generateRefreshToken();
-    
-    // Create session
+
     await this.sessionService.createSession(user.id, accessToken, refreshToken);
-    
-    // Get expiry time
+
     const expiresIn = this.configService.getJwtExpiryInSeconds();
 
     return {
@@ -157,8 +159,9 @@ export class AuthService {
 
     // Generate new tokens
     const user = session.user;
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    
+    const jti = randomBytes(16).toString('hex');
+    const payload = { sub: user.id, email: user.email, role: user.role, jti };
+
     const newAccessToken = this.jwtService.sign(payload);
     const newRefreshToken = this.generateRefreshToken();
 
@@ -280,6 +283,9 @@ export class AuthService {
     });
 
     if (user) {
+      if (!user.isActive) {
+        throw new UnauthorizedException('Account is deactivated');
+      }
       const { password, ...result } = user;
       return result as UserProfile;
     }
@@ -289,6 +295,9 @@ export class AuthService {
     });
 
     if (user) {
+      if (!user.isActive) {
+        throw new UnauthorizedException('Account is deactivated');
+      }
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: 
@@ -318,15 +327,15 @@ export class AuthService {
   }
 
   async generateTokenForUser(user: UserProfile): Promise<AuthResponse> {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const jti = randomBytes(16).toString('hex');
+    const payload = { sub: user.id, email: user.email, role: user.role, jti };
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.generateRefreshToken();
-    
-    // Create session for OAuth users
+
     await this.sessionService.createSession(user.id, accessToken, refreshToken);
-    
-    return { 
-      user: this.toLoginUserDto(user), 
+
+    return {
+      user: this.toLoginUserDto(user),
       accessToken,
       refreshToken,
     };
@@ -461,39 +470,86 @@ export class AuthService {
   }
 
   /**
-   * Cascade account deletion: profile → proposals → auth user.
-   * Aborts before deleting the auth user if a downstream purge fails.
+   * Enqueue durable account deletion (outbox). Returns immediately with pending status.
    */
-  async deleteAccount(userId: string, authorization: string): Promise<{ message: string }> {
+  async deleteAccount(
+    userId: string,
+    authorization: string,
+    jti?: string
+  ): Promise<{ status: string; message: string }> {
     if (!authorization) {
       throw new UnauthorizedException('Authorization header is required');
     }
 
-    await this.forwardDelete(
-      `${this.configService.getProfileServiceUrl().replace(/\/$/, '')}/me`,
-      authorization,
-      'profile-service'
-    );
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
 
-    await this.forwardDelete(
-      `${this.configService.getProposalServiceUrl().replace(/\/$/, '')}/proposals/me`,
-      authorization,
-      'proposal-service'
-    );
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { isActive: false },
+      });
+
+      const existing = await tx.accountDeletionOutbox.findFirst({
+        where: {
+          userId,
+          status: { in: ['PENDING', 'PROCESSING', 'FAILED'] },
+        },
+      });
+
+      if (!existing) {
+        await tx.accountDeletionOutbox.create({
+          data: { userId, status: 'PENDING' },
+        });
+      }
+    });
+
+    if (jti) {
+      const decoded = this.jwtService.decode(authorization.replace(/^Bearer\s+/i, '')) as {
+        exp?: number;
+      } | null;
+      const expiresAt = decoded?.exp
+        ? new Date(decoded.exp * 1000)
+        : new Date(Date.now() + this.configService.getJwtExpiryInSeconds() * 1000);
+      await this.prisma.revokedAccessToken.upsert({
+        where: { jti },
+        create: { jti, expiresAt },
+        update: { expiresAt },
+      });
+    }
 
     await this.sessionService.deleteUserSessions(userId);
-    await this.prisma.user.delete({ where: { id: userId } });
 
-    this.logger.log(`Deleted auth account for user ${userId}`);
-    return { message: 'Account deleted successfully' };
+    this.logger.log(`Queued account deletion for user ${userId}`);
+    return {
+      status: 'pending_deletion',
+      message: 'Account deletion has been queued',
+    };
   }
 
-  private async forwardDelete(url: string, authorization: string, serviceName: string) {
+  mintDeletionToken(userId: string, email: string, role: string): string {
+    const jti = randomBytes(16).toString('hex');
+    return this.jwtService.sign(
+      {
+        sub: userId,
+        email,
+        role,
+        jti,
+        purpose: 'account_deletion',
+      },
+      { expiresIn: '10m' }
+    );
+  }
+
+  async forwardDelete(url: string, authorization: string, serviceName: string) {
     let response: Response;
     try {
       response = await fetch(url, {
         method: 'DELETE',
         headers: { Authorization: authorization },
+        signal: AbortSignal.timeout(15000),
       });
     } catch (error) {
       this.logger.error(`Failed to reach ${serviceName} during account deletion`, error);
