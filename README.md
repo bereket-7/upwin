@@ -57,15 +57,23 @@ Service-specific e2e commands are available as `npm run e2e:auth`, `npm run e2e:
 - Profile lookup by ID is allowed only through guarded routes that verify `profile.userId` matches the current user.
 - AI gateway forwards the bearer token to profile and proposal services and uses JWT claims as the source of user identity.
 
+### RAG reseeding
+
+After deploying AI gateway RAG changes, re-seed Qdrant so payload metadata matches filters (`metadata.tone`, etc.):
+
+```sh
+cd apps/ai-gateway && npx ts-node src/scripts/seed-rag.ts
+```
+
 ### Account deletion cascade
 
-`DELETE /api/auth/account` (JWT required) forwards the bearer token to:
+`DELETE /api/auth/account` (JWT required) returns **202** and queues durable deletion:
 
-1. `DELETE /api/me` on profile-service (cascade-deletes profile children; also purges proposals for that profile)
-2. `DELETE /api/proposals/me` on proposal-service (all remaining proposals for the user)
-3. Deletes auth sessions and the auth user row
+1. Deactivates the user (blocks login) and revokes current access `jti` / sessions
+2. Outbox worker mints a short-lived deletion JWT and calls `DELETE /api/me` (profile) then `DELETE /api/proposals/me`
+3. Hard-deletes the auth user and marks the outbox row `DONE`
 
-If a downstream purge fails, auth returns `502` and does **not** delete the auth user.
+Retries on failure up to a fixed attempt limit. Idempotent purge endpoints make replay safe.
 
 ## Frontend integration
 
@@ -97,6 +105,6 @@ Staging workflows build and push Docker images per service using SSH key authent
 
 ### Token revocation note
 
-Logout blacklists tokens only inside auth-service (in-memory). Profile, proposal, and AI gateway accept a JWT until it expires. Prefer a short `JWT_EXPIRY` with refresh rotation. A shared Redis blacklist is a future hardening step.
+Logout revokes the access token `jti` in auth-service Postgres (`RevokedAccessToken`) and deletes refresh sessions. Profile, proposal, and AI gateway verify JWT signature and expiry only — residual access window is at most `JWT_EXPIRY` (default 15m). Prefer short access TTL with refresh rotation. OAuth one-time codes are stored in Postgres (`AuthCode`) so multi-instance auth works.
 
 Deleted profiles can leave historical proposals with a stale `profileId`; account and profile delete flows purge or scope those rows by authenticated `userId` (see account deletion endpoints).
