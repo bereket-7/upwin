@@ -104,38 +104,44 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(
     @CurrentUser() user: AuthTypes.AuthenticatedUser,
+    @Request() req: { headers: { authorization?: string } },
     @Body('refreshToken') refreshToken?: string,
   ): Promise<{ message: string }> {
-    // Blacklist the access token
-    const token = refreshToken; // You can extract from header if needed
-    if (token) {
-      this.tokenBlacklistService.blacklistToken(token);
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      await this.tokenBlacklistService.blacklistToken(authHeader.slice(7));
     }
-    
-    // Delete session if refresh token provided
+
     if (refreshToken) {
       return this.authService.logout(refreshToken);
     }
-    
+
     return { message: 'Logged out successfully' };
   }
 
   @Post('logout-all')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logoutAll(@CurrentUser() user: AuthTypes.AuthenticatedUser): Promise<{ message: string }> {
+  async logoutAll(
+    @CurrentUser() user: AuthTypes.AuthenticatedUser,
+    @Request() req: { headers: { authorization?: string } },
+  ): Promise<{ message: string }> {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      await this.tokenBlacklistService.blacklistToken(authHeader.slice(7));
+    }
     return this.authService.logoutAll(user.userId);
   }
 
   @Delete('account')
   @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   async deleteAccount(
     @CurrentUser() user: AuthTypes.AuthenticatedUser,
     @Request() req: { headers: { authorization?: string } }
-  ): Promise<{ message: string }> {
+  ): Promise<{ status: string; message: string }> {
     const authorization = req.headers.authorization || '';
-    return this.authService.deleteAccount(user.userId, authorization);
+    return this.authService.deleteAccount(user.userId, authorization, user.jti);
   }
 
   @Get('google')
@@ -145,7 +151,7 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Request() req: { user: AuthTypes.UserProfile }, @Res() res: Response) {
-    const authCode = this.authCodeService.generateAuthCode(req.user.id);
+    const authCode = await this.authCodeService.generateAuthCode(req.user.id);
     const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
     
     if (!this.configService.validateCallbackUrl(redirectUrl)) {
@@ -162,7 +168,7 @@ export class AuthController {
   @Get('linkedin/callback')
   @UseGuards(AuthGuard('linkedin'))
   async linkedinCallback(@Request() req: { user: AuthTypes.UserProfile }, @Res() res: Response) {
-    const authCode = this.authCodeService.generateAuthCode(req.user.id);
+    const authCode = await this.authCodeService.generateAuthCode(req.user.id);
     const redirectUrl = `${this.configService.getCallbackUrl()}/auth/success`;
     
     if (!this.configService.validateCallbackUrl(redirectUrl)) {
@@ -178,7 +184,7 @@ export class AuthController {
       throw new BadRequestException('Authorization code is required');
     }
 
-    const userId = this.authCodeService.exchangeCodeForToken(code);
+    const userId = await this.authCodeService.exchangeCodeForToken(code);
     if (!userId) {
       throw new UnauthorizedException('Invalid or expired authorization code');
     }
