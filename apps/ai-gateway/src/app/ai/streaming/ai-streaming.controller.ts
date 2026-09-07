@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Res, Req, Logger, UseGuards, Headers } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AiStreamingService } from './ai-streaming.service';
 import { StreamProposalDto } from '../dto/stream-proposal.dto';
@@ -19,6 +20,7 @@ export class AiStreamingController {
   constructor(private readonly streamingService: AiStreamingService) {}
 
   @Post('stream')
+  @Throttle({ short: { limit: 2, ttl: 1000 }, medium: { limit: 8, ttl: 10000 } })
   async streamProposal(
     @Body() dto: StreamProposalDto,
     @Headers('authorization') authorization: string,
@@ -27,35 +29,41 @@ export class AiStreamingController {
   ): Promise<void> {
     this.logger.log(`Streaming proposal request for profile: ${dto.profileId}`);
 
-    // Set SSE headers
     this.streamingService.sendStreamHeaders(response);
 
-    // Handle client disconnect
+    const abortController = new AbortController();
+
     request.on('close', () => {
       this.logger.log('Client disconnected from stream');
+      abortController.abort();
       if (!response.writableEnded) {
         response.end();
       }
     });
 
-    // Handle errors
     request.on('error', (error) => {
       this.logger.error('Request error:', error);
+      abortController.abort();
       if (!response.writableEnded) {
         response.end();
       }
     });
 
     try {
-      // Start streaming
-      await this.streamingService.streamProposal(request.user.userId, dto, authorization, response);
+      await this.streamingService.streamProposal(
+        request.user.userId,
+        dto,
+        authorization,
+        response,
+        abortController.signal,
+      );
     } catch (error) {
       this.logger.error('Streaming error:', error);
-      
+
       if (!response.writableEnded) {
         const errorMessage = error instanceof Error ? error.message : 'Streaming failed';
         response.write(`event: error\n`);
-        response.write(`data: ${errorMessage}\n\n`);
+        response.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
         response.end();
       }
     }
